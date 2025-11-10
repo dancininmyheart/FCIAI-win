@@ -82,7 +82,7 @@ def page2():
 
 # 允许的文件扩展名和大小限制
 ALLOWED_EXTENSIONS = {'ppt', 'pptx'}
-MAX_FILE_SIZE = 200 * 1024 * 1024  # 200MB
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
 
 
 def allowed_file(filename):
@@ -492,6 +492,44 @@ def get_history():
             'status': 'error',
             'message': '获取历史记录失败'
         }), 500
+
+
+@main.route('/download/<int:record_id>')
+@login_required
+def download_file(record_id):
+    try:
+        # 获取上传记录
+        record = UploadRecord.query.get_or_404(record_id)
+
+        # 验证用户权限
+        if record.user_id != current_user.id:
+            return jsonify({'error': '无权访问此文件'}), 403
+
+        # 检查文件是否存在
+        file_path = os.path.join(record.file_path, record.stored_filename)
+        if not os.path.exists(file_path):
+            return jsonify({'error': '文件不存在'}), 404
+
+        # 添加调试信息
+        print(f"Downloading file: {file_path}")
+        print(f"Original filename: {record.filename}")
+        file_path = os.path.abspath(file_path)
+        return send_file(file_path, as_attachment=True, download_name=record.filename)
+    except Exception as e:
+        print(f"Download error: {str(e)}")
+        return jsonify({'error': f'下载失败: {str(e)}'}), 500
+
+
+@main.route('/delete/<int:record_id>', methods=['DELETE'])
+@login_required
+def delete_file(record_id):
+    try:
+        # 获取上传记录
+        record = UploadRecord.query.get_or_404(record_id)
+
+        # 验证用户权限
+        if record.user_id != current_user.id:
+            return jsonify({'error': '无权删除此文件'}), 403
 
         try:
             # 删除物理文件
@@ -974,21 +1012,20 @@ def update_translation(id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
-        db.session.commit()
 
-        return jsonify({
-            'message': '更新成功',
-            'translation': {
-                'id': translation.id,
-                'english': translation.english,
-                'chinese': translation.chinese,
-                'dutch': translation.dutch,
-                'class1': translation.class1,
-                'class2': translation.class2,
-                'is_public': translation.is_public,
-                'created_at': datetime_to_isoformat(translation.created_at)
-            }
-        })
+@main.route('/api/translations/<int:id>', methods=['DELETE'])
+@login_required
+def delete_translation(id):
+    translation = Translation.query.get_or_404(id)
+
+    # 验证所有权
+    if translation.user_id != current_user.id:
+        return jsonify({'error': '无权删除此翻译'}), 403
+
+    try:
+        db.session.delete(translation)
+        db.session.commit()
+        return jsonify({'message': '删除成功'})
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -3881,6 +3918,14 @@ def delete_pdf_translation_by_id(record_id):
         import traceback
         logger.error(f"错误详情: {traceback.format_exc()}")
         return jsonify({'status': 'error', 'message': '删除失败'}), 500
+def create_template_file(file_path):
+    """创建模板 Excel 文件"""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+
+    # 设置表头
+    headers = ['english', 'chinese', 'dutch', 'category', 'is_public']
     for col_num, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col_num)
         cell.value = header
@@ -4170,3 +4215,9 @@ def batch_insert_translations(translations_data, user_id):
         error_count = len(translations_data)
 
     return success_count, error_count, error_details
+EXCEL_ALLOWED_EXTENSIONS = {'xlsx', 'xls'}
+def allowed_excel_file(filename):
+    if '.' not in filename:
+        return False
+    ext = filename.rsplit('.', 1)[1].lower()
+    return ext in EXCEL_ALLOWED_EXTENSIONS
