@@ -1,0 +1,13 @@
+# OCR工具路径配置（仅支持Windows平台）
+# 如果工具在系统PATH中，可以留空或使用默认值
+# 如果工具在特定路径，请填写完整路径
+
+# Inkscape路径（必需，用于EMF转换）
+# Windows示例：
+# INKSCAPE_PATH=C:\Program Files\Inkscape\bin\inkscape.exe
+# 或者如果inkscape在PATH中：
+# INKSCAPE_PATH=inkscape
+
+# 其他配置
+# OCR_API_TIMEOUT=30
+# OCR_MAX_RETRIES=3

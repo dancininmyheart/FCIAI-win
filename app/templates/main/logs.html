@@ -1,0 +1,647 @@
+{% extends "main/base_layout.html" %}
+
+{% block title %}{% if session.get('language') == 'en' %}Log Management{% else %}日志管理{% endif %}{% endblock %}
+
+{% block styles %}
+<style>
+/* 重写容器样式 */
+.container {
+    margin-left: 17vw !important;
+    width: 83vw !important;
+    background-color: #f8f9fa;
+    color: rgb(110,111,114);
+    line-height: 1.6;
+    padding: 1.4vw;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+    /* 日志管理页面全局样式 */
+    .log-management-container {
+    background: white;
+    border-radius: 0.8vw;
+    padding: 2.1vw;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin: 0;
+    }
+
+    .logs-title {
+    margin-bottom: 2.1vw;
+    color: rgb(0,148,217);
+        border-bottom: 2px solid #e9ecef;
+    padding-bottom: 1.4vw;
+    font-size: 2rem;
+        font-weight: 600;
+    }
+
+    /* 改善表单控件样式 */
+    .log-management label {
+    font-size: 1rem !important;
+        font-weight: 500 !important;
+    color: rgb(110,111,114) !important;
+    margin-bottom: 0.6vw !important;
+        display: block;
+    }
+
+    /* 增强表格样式 */
+    .el-table {
+    font-size: 1rem !important;
+    color: rgb(110,111,114) !important;
+    border: 1px solid #e9ecef !important;
+    border-radius: 0.6vw !important;
+    }
+
+    .el-table th {
+    background-color: #fafbfc !important;
+    color: rgb(0,148,217) !important;
+        font-weight: 600 !important;
+    padding: 1.2vw 0.8vw !important;
+    font-size: 1rem !important;
+    border-bottom: 1px solid #e9ecef !important;
+    }
+
+    .el-table td {
+    padding: 1.2vw 0.8vw !important;
+    border-bottom: 1px solid #f1f3f4 !important;
+    color: rgb(110,111,114) !important;
+}
+
+.el-table tbody tr:hover td {
+    background-color: rgba(0,148,217,0.05) !important;
+    }
+
+    /* 优化表单区域样式 */
+    .form-section {
+        background-color: #f8f9fa;
+    border-radius: 0.6vw;
+    padding: 1.8vw;
+    margin-bottom: 2.1vw;
+        border: 1px solid #e9ecef;
+    }
+
+    /* 改善按钮样式 */
+    .el-button {
+    font-size: 1rem !important;
+    padding: 0.8vw 1.6vw !important;
+        font-weight: 500 !important;
+    border-radius: 0.4vw !important;
+    }
+
+    .el-button--primary {
+    background-color: rgb(0,148,217) !important;
+    border-color: rgb(0,148,217) !important;
+}
+
+.el-button--primary:hover {
+    background-color: rgb(0,130,190) !important;
+    border-color: rgb(0,130,190) !important;
+    }
+
+    .el-button--success {
+    background-color: #28a745 !important;
+    border-color: #28a745 !important;
+}
+
+.el-button--success:hover {
+    background-color: #218838 !important;
+    border-color: #218838 !important;
+}
+
+/* 输入框和选择器样式 */
+.el-input__inner,
+.el-select .el-input__inner {
+    color: rgb(110,111,114) !important;
+    background-color: white !important;
+    border-color: #dee2e6 !important;
+    border-radius: 0.4vw !important;
+    padding: 0.8vw 1.2vw !important;
+    font-size: 1rem !important;
+}
+
+.el-input__inner:focus,
+.el-select .el-input__inner:focus {
+    border-color: rgb(0,148,217) !important;
+}
+
+.el-input__inner::placeholder {
+    color: rgba(110,111,114,0.6) !important;
+    }
+
+    /* 自定义标签样式 */
+    .el-tag {
+    font-size: 0.9rem !important;
+    padding: 0.4vw 0.8vw !important;
+    border-radius: 0.4vw !important;
+}
+
+.el-tag--success {
+    background-color: rgba(40,167,69,0.15) !important;
+    color: #28a745 !important;
+    border-color: rgba(40,167,69,0.3) !important;
+}
+
+.el-tag--warning {
+    background-color: rgba(255,193,7,0.15) !important;
+    color: #b8860b !important;
+    border-color: rgba(255,193,7,0.3) !important;
+}
+
+.el-tag--danger {
+    background-color: rgba(220,53,69,0.15) !important;
+    color: #dc3545 !important;
+    border-color: rgba(220,53,69,0.3) !important;
+}
+
+.el-tag--info {
+    background-color: rgba(0,148,217,0.15) !important;
+    color: rgb(0,148,217) !important;
+    border-color: rgba(0,148,217,0.3) !important;
+    }
+
+    /* 空状态提示 */
+    .empty-text {
+    font-size: 1.1rem;
+    color: rgb(110,111,114);
+    padding: 2.1vw 0;
+        text-align: center;
+    }
+
+/* 组件标题样式 */
+.section-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: rgb(0,148,217);
+    margin-bottom: 1.4vw;
+}
+
+/* 覆盖Element UI下拉菜单样式 */
+.el-select-dropdown__item {
+    font-size: 1rem !important;
+    padding: 0.6vw 1.4vw !important;
+    color: rgb(110,111,114) !important;
+}
+
+.el-select-dropdown__item:hover {
+    background-color: rgba(0,148,217,0.1) !important;
+    color: rgb(0,148,217) !important;
+}
+
+.el-select-dropdown__item.selected {
+    background-color: rgb(0,148,217) !important;
+    color: white !important;
+}
+
+/* 日期选择器样式 */
+.el-date-picker {
+    font-size: 1rem !important;
+}
+
+.el-picker-panel {
+    border: 1px solid #e9ecef !important;
+    border-radius: 0.6vw !important;
+}
+
+/* 表格无数据样式 */
+.el-table__empty-text {
+    color: rgb(110,111,114) !important;
+    font-size: 1rem !important;
+}
+
+/* 表格边框 */
+.el-table--border::after,
+.el-table--group::after {
+    background-color: #e9ecef !important;
+}
+
+.el-table td,
+.el-table th.is-leaf {
+    border-bottom: 1px solid #f1f3f4 !important;
+}
+
+.el-table--border td,
+.el-table--border th {
+    border-right: 1px solid #f1f3f4 !important;
+}
+
+/* 响应式设计 */
+    @media (max-width: 768px) {
+        .log-management-container {
+        padding: 1.4vw;
+        }
+
+        .logs-title {
+        font-size: 1.6rem;
+        }
+    
+    .form-section {
+        padding: 1.2vw;
+    }
+
+    .el-button {
+        font-size: 0.9rem !important;
+        padding: 0.6vw 1.2vw !important;
+    }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="log-management-container">
+    <h1 class="logs-title">{% if session.get('language') == 'en' %}System Log Management{% else %}系统日志管理{% endif %}</h1>
+
+    <!-- 引入 Vue 组件 -->
+    <div id="app">
+        <log-management></log-management>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- 引入 Vue.js -->
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+<!-- 引入 Element UI -->
+<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<!-- 引入 Axios -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script>
+{% raw %}
+    // 获取当前语言设置
+    const currentLanguage = '{{ session.get("language", "zh") }}';
+
+    // 多语言文本
+    const logTranslations = {
+        zh: {
+            logManagement: '日志管理',
+            loggerName: '日志记录器',
+            logLevel: '日志级别',
+            timeRange: '时间范围',
+            selectLogger: '请选择日志记录器',
+            selectLevel: '请选择日志级别',
+            allLevels: '全部',
+            rangeSeparator: '至',
+            startDate: '开始日期',
+            endDate: '结束日期',
+            reset: '重置',
+            query: '查询',
+            logLevelSetting: '日志级别设置',
+            selectLevelPlaceholder: '请选择级别',
+            selectHandlerPlaceholder: '请选择处理器',
+            allHandlers: '全部',
+            console: '控制台',
+            file: '文件',
+            updateLevel: '更新级别',
+            time: '时间',
+            logger: '记录器',
+            level: '级别',
+            content: '内容',
+            noLogs: '暂无日志记录',
+            noAvailableLoggers: '没有可用的日志记录器',
+            getLoggersFailed: '获取日志记录器列表失败: ',
+            selectLoggerFirst: '请先选择日志记录器',
+            invalidStartTime: '开始时间格式不正确，应为: YYYY-MM-DD HH:MM:SS',
+            invalidEndTime: '结束时间格式不正确，应为: YYYY-MM-DD HH:MM:SS',
+            startTimeAfterEnd: '开始时间必须小于结束时间',
+            querySuccess: '成功获取 {count} 条日志',
+            noMatchingLogs: '没有找到符合条件的日志',
+            responseFormatError: '响应数据格式错误',
+            queryLogsFailed: '查询日志失败: ',
+            levelUpdateSuccess: '日志级别更新成功',
+            levelUpdateFailed: '更新日志级别失败'
+        },
+        en: {
+            logManagement: 'Log Management',
+            loggerName: 'Logger',
+            logLevel: 'Log Level',
+            timeRange: 'Time Range',
+            selectLogger: 'Please select logger',
+            selectLevel: 'Please select log level',
+            allLevels: 'All',
+            rangeSeparator: 'to',
+            startDate: 'Start Date',
+            endDate: 'End Date',
+            reset: 'Reset',
+            query: 'Query',
+            logLevelSetting: 'Log Level Setting',
+            selectLevelPlaceholder: 'Please select level',
+            selectHandlerPlaceholder: 'Please select handler',
+            allHandlers: 'All',
+            console: 'Console',
+            file: 'File',
+            updateLevel: 'Update Level',
+            time: 'Time',
+            logger: 'Logger',
+            level: 'Level',
+            content: 'Content',
+            noLogs: 'No log records',
+            noAvailableLoggers: 'No available loggers',
+            getLoggersFailed: 'Failed to get logger list: ',
+            selectLoggerFirst: 'Please select a logger first',
+            invalidStartTime: 'Invalid start time format, should be: YYYY-MM-DD HH:MM:SS',
+            invalidEndTime: 'Invalid end time format, should be: YYYY-MM-DD HH:MM:SS',
+            startTimeAfterEnd: 'Start time must be before end time',
+            querySuccess: 'Successfully retrieved {count} logs',
+            noMatchingLogs: 'No matching logs found',
+            responseFormatError: 'Response data format error',
+            queryLogsFailed: 'Failed to query logs: ',
+            levelUpdateSuccess: 'Log level updated successfully',
+            levelUpdateFailed: 'Failed to update log level'
+        }
+    };
+
+    // 获取翻译文本的辅助函数
+    function getLogText(key, params = {}) {
+        let text = logTranslations[currentLanguage] && logTranslations[currentLanguage][key] 
+            ? logTranslations[currentLanguage][key] 
+            : logTranslations.zh[key];
+        
+        // 替换参数
+        Object.keys(params).forEach(param => {
+            text = text.replace(`{${param}}`, params[param]);
+        });
+        
+        return text;
+    }
+
+    // 注册 LogManagement 组件
+    Vue.component('log-management', {
+        template: `
+        <div class="log-management">
+            <h2 class="section-title">{{ getLogText('logManagement') }}</h2>
+
+            <!-- 日志查询表单 -->
+            <div class="form-section">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <!-- 日志记录器选择 -->
+                    <div>
+                        <label>
+                            {{ getLogText('loggerName') }}
+                        </label>
+                        <el-select v-model="queryParams.logger_name" :placeholder="getLogText('selectLogger')" style="width: 100%;">
+                            <el-option v-for="logger in loggers" :key="logger" :label="logger" :value="logger"></el-option>
+                        </el-select>
+                    </div>
+
+                    <!-- 日志级别选择 -->
+                    <div>
+                        <label>
+                            {{ getLogText('logLevel') }}
+                        </label>
+                        <el-select v-model="queryParams.level" :placeholder="getLogText('selectLevel')" style="width: 100%;">
+                            <el-option :label="getLogText('allLevels')" value=""></el-option>
+                            <el-option label="DEBUG" value="DEBUG"></el-option>
+                            <el-option label="INFO" value="INFO"></el-option>
+                            <el-option label="WARNING" value="WARNING"></el-option>
+                            <el-option label="ERROR" value="ERROR"></el-option>
+                            <el-option label="CRITICAL" value="CRITICAL"></el-option>
+                        </el-select>
+                    </div>
+
+                    <!-- 时间范围选择 -->
+                    <div>
+                        <label>
+                            {{ getLogText('timeRange') }}
+                        </label>
+                        <el-date-picker
+                            v-model="dateRange"
+                            type="datetimerange"
+                            :range-separator="getLogText('rangeSeparator')"
+                            :start-placeholder="getLogText('startDate')"
+                            :end-placeholder="getLogText('endDate')"
+                            style="width: 100%;">
+                        </el-date-picker>
+                    </div>
+                </div>
+
+                <!-- 查询按钮 -->
+                <div style="margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <el-button @click="resetQuery" size="medium">{{ getLogText('reset') }}</el-button>
+                    <el-button type="primary" @click="queryLogs" size="medium">{{ getLogText('query') }}</el-button>
+                </div>
+            </div>
+
+            <!-- 日志级别管理 -->
+            <div v-if="queryParams.logger_name" class="form-section">
+                <h3 class="section-title" style="font-size: 18px;">{{ getLogText('logLevelSetting') }}</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+                    <el-select v-model="levelUpdate.level" :placeholder="getLogText('selectLevelPlaceholder')" style="min-width: 150px;">
+                        <el-option label="DEBUG" value="DEBUG"></el-option>
+                        <el-option label="INFO" value="INFO"></el-option>
+                        <el-option label="WARNING" value="WARNING"></el-option>
+                        <el-option label="ERROR" value="ERROR"></el-option>
+                        <el-option label="CRITICAL" value="CRITICAL"></el-option>
+                    </el-select>
+                    <el-select v-model="levelUpdate.handler_type" :placeholder="getLogText('selectHandlerPlaceholder')" style="min-width: 150px;">
+                        <el-option :label="getLogText('allHandlers')" value="both"></el-option>
+                        <el-option :label="getLogText('console')" value="console"></el-option>
+                        <el-option :label="getLogText('file')" value="file"></el-option>
+                    </el-select>
+                    <el-button type="success" @click="updateLogLevel" size="medium">{{ getLogText('updateLevel') }}</el-button>
+                </div>
+            </div>
+
+            <!-- 日志列表 -->
+            <div style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
+                <el-table :data="logs" border stripe style="width: 100%">
+                    <el-table-column prop="timestamp" :label="getLogText('time')" width="180">
+                        <template slot-scope="scope">
+                            {{ formatDateTime(scope.row.timestamp_str || scope.row.timestamp) }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="logger" :label="getLogText('logger')" width="150">
+                        <template slot-scope="scope">
+                            {{ scope.row.logger }}
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="level" :label="getLogText('level')" width="120">
+                        <template slot-scope="scope">
+                            <el-tag
+                                :type="getTagType(scope.row.level)"
+                                size="medium">
+                                {{ scope.row.level }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="message" :label="getLogText('content')">
+                        <template slot-scope="scope">
+                            {{ scope.row.message }}
+                        </template>
+                    </el-table-column>
+                </el-table>
+                <div v-if="logs.length === 0" class="empty-text">
+                    {{ getLogText('noLogs') }}
+                </div>
+            </div>
+        </div>
+        `,
+        data() {
+            return {
+                loggers: [],
+                logs: [],
+                dateRange: [],
+                queryParams: {
+                    logger_name: '',
+                    level: '',
+                    start_time: '',
+                    end_time: '',
+                    limit: 100
+                },
+                levelUpdate: {
+                    logger_name: '',
+                    level: 'INFO',
+                    handler_type: 'both'
+                }
+            }
+        },
+        watch: {
+            dateRange(val) {
+                if (val && val.length === 2) {
+                    this.queryParams.start_time = this.formatDateTimeForAPI(val[0]);
+                    this.queryParams.end_time = this.formatDateTimeForAPI(val[1]);
+                } else {
+                    this.queryParams.start_time = '';
+                    this.queryParams.end_time = '';
+                }
+            }
+        },
+        methods: {
+            getLogText,
+            
+            fetchLoggers() {
+                axios.get('/api/logs/list')
+                    .then(response => {
+                        this.loggers = response.data;
+                        if (this.loggers.length > 0) {
+                            this.queryParams.logger_name = this.loggers[0];
+                            this.levelUpdate.logger_name = this.loggers[0];
+                            this.queryLogs();
+                        } else {
+                            this.$message.warning(getLogText('noAvailableLoggers'));
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error(getLogText('getLoggersFailed') + (error.response?.data || error.message));
+                    });
+            },
+
+            queryLogs() {
+                if (!this.queryParams.logger_name) {
+                    this.$message.warning(getLogText('selectLoggerFirst'));
+                    return;
+                }
+
+                if (this.queryParams.start_time && !this.validateTimeFormat(this.queryParams.start_time)) {
+                    this.$message.error(getLogText('invalidStartTime'));
+                    return;
+                }
+
+                if (this.queryParams.end_time && !this.validateTimeFormat(this.queryParams.end_time)) {
+                    this.$message.error(getLogText('invalidEndTime'));
+                    return;
+                }
+
+                if (this.queryParams.start_time && this.queryParams.end_time) {
+                    const startTime = new Date(this.queryParams.start_time);
+                    const endTime = new Date(this.queryParams.end_time);
+                    if (startTime >= endTime) {
+                        this.$message.error(getLogText('startTimeAfterEnd'));
+                        return;
+                    }
+                }
+
+                axios.post('/api/logs/query', this.queryParams)
+                    .then(response => {
+                        if (response.data && response.data.logs) {
+                            this.logs = response.data.logs;
+                            if (this.logs.length > 0) {
+                                this.$message.success(getLogText('querySuccess', {count: this.logs.length}));
+                            } else {
+                                this.$message.info(getLogText('noMatchingLogs'));
+                            }
+                        } else {
+                            this.$message.error(getLogText('responseFormatError'));
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error(getLogText('queryLogsFailed') + (error.response?.data || error.message));
+                    });
+            },
+
+            updateLogLevel() {
+                this.levelUpdate.logger_name = this.queryParams.logger_name;
+                axios.post('/api/logs/level', this.levelUpdate)
+                    .then(() => {
+                        this.$message.success(getLogText('levelUpdateSuccess'));
+                    })
+                    .catch(error => {
+                        this.$message.error(getLogText('levelUpdateFailed'));
+                    });
+            },
+
+            resetQuery() {
+                this.queryParams.level = '';
+                this.dateRange = [];
+                this.queryParams.start_time = '';
+                this.queryParams.end_time = '';
+                this.queryLogs();
+            },
+
+            formatDateTimeForAPI(date) {
+                if (!date) return '';
+                const d = new Date(date);
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                const hours = String(d.getHours()).padStart(2, '0');
+                const minutes = String(d.getMinutes()).padStart(2, '0');
+                const seconds = String(d.getSeconds()).padStart(2, '0');
+                return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+            },
+
+            formatDateTime(timestamp) {
+                if (!timestamp) return '';
+                let date;
+                if (typeof timestamp === 'string') {
+                    // 如果是字符串，创建Date对象
+                    date = new Date(timestamp);
+                } else {
+                    // 如果是Date对象，直接使用
+                    date = new Date(timestamp);
+                }
+
+                // 添加8小时偏移来修正时区问题
+                date.setHours(date.getHours() + 8);
+
+                return date.toLocaleString();
+            },
+
+            validateTimeFormat(timeStr) {
+                if (!timeStr) return true;
+                const pattern = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+                return pattern.test(timeStr);
+            },
+
+            getTagType(level) {
+                const types = {
+                    'DEBUG': 'info',
+                    'INFO': 'success',
+                    'WARNING': 'warning',
+                    'ERROR': 'danger',
+                    'CRITICAL': 'danger'
+                };
+                return types[level] || 'info';
+            }
+        },
+        mounted() {
+            this.fetchLoggers();
+        }
+    });
+
+    // 创建 Vue 实例
+    new Vue({
+        el: '#app'
+    });
+{% endraw %}
+</script>
+{% endblock %}

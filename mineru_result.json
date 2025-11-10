@@ -1,0 +1,11 @@
+{
+  "code": 0,
+  "msg": "ok",
+  "trace_id": "feb4e21049bb2239ff7eee8cf7302bb4",
+  "data": {
+    "task_id": "feba8b54-c0aa-4212-b558-33813ec4d909",
+    "state": "done",
+    "err_msg": "",
+    "full_zip_url": "https://cdn-mineru.openxlab.org.cn/pdf/2025-09-01/feba8b54-c0aa-4212-b558-33813ec4d909.zip"
+  }
+}

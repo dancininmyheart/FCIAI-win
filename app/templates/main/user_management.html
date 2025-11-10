@@ -1,0 +1,401 @@
+{% extends "main/base_layout.html" %}
+
+{% block title %}{% if session.get('language') == 'en' %}User Management{% else %}用户管理{% endif %}{% endblock %}
+
+{% block styles %}
+<style>
+/* 重写容器样式 */
+.container {
+    margin-left: 17vw !important;
+    width: 83vw !important;
+    background-color: #f8f9fa;
+    color: rgb(110,111,114);
+    line-height: 1.6;
+    padding: 1.4vw;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+.user-management-container {
+    max-width: none;
+    margin: 0;
+    background: white;
+    border-radius: 0.8vw;
+    padding: 2.1vw;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.user-management-header {
+    margin-bottom: 2.1vw;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 1.4vw;
+}
+
+.user-management-header h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: rgb(0,148,217);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.7vw;
+}
+
+.status-filter {
+    display: flex;
+    gap: 0.8vw;
+}
+
+.status-btn {
+    padding: 0.6vw 1.2vw;
+    border: none;
+    border-radius: 0.4vw;
+    cursor: pointer;
+    background: #f8f9fa;
+    color: rgb(110,111,114);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid #dee2e6;
+}
+
+.status-btn.active {
+    background: rgb(0,148,217);
+    color: white;
+    border-color: rgb(0,148,217);
+}
+
+.status-btn:hover:not(.active) {
+    background: rgba(0,148,217,0.1);
+    color: rgb(0,148,217);
+    border-color: rgb(0,148,217);
+}
+
+.user-management-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 0.6vw;
+    overflow: hidden;
+    border: 1px solid #e9ecef;
+    font-size: 1rem;
+}
+
+.user-management-table th,
+.user-management-table td {
+    padding: 1.2vw;
+    text-align: left;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.user-management-table th {
+    background: #fafbfc;
+    font-weight: 600;
+    color: rgb(0,148,217);
+    font-size: 1rem;
+}
+
+.user-management-table td {
+    color: rgb(110,111,114);
+}
+
+.user-management-table tr:hover {
+    background: rgba(0,148,217,0.05);
+}
+
+.status-badge {
+    padding: 0.4vw 0.8vw;
+    border-radius: 1.2vw;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.status-approved {
+    background: rgba(40,167,69,0.15);
+    color: #28a745;
+}
+
+.status-disabled {
+    background: rgba(108,117,125,0.15);
+    color: #6c757d;
+}
+
+.action-btns {
+    display: flex;
+    gap: 0.5vw;
+}
+
+.action-btn {
+    padding: 0.6vw 1.2vw;
+    border: none;
+    border-radius: 0.4vw;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4vw;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.disable-btn {
+    background: rgba(255,193,7,0.15);
+    color: #b8860b;
+    border: 1px solid rgba(255,193,7,0.3);
+}
+
+.disable-btn:hover {
+    background: #ffc107;
+    color: white;
+    border-color: #ffc107;
+}
+
+.enable-btn {
+    background: rgba(23,162,184,0.15);
+    color: #17a2b8;
+    border: 1px solid rgba(23,162,184,0.3);
+}
+
+.enable-btn:hover {
+    background: #17a2b8;
+    color: white;
+    border-color: #17a2b8;
+}
+
+.pagination {
+    margin-top: 2.1vw;
+    display: flex;
+    justify-content: center;
+    gap: 0.4vw;
+}
+
+.pagination button {
+    padding: 0.6vw 1.2vw;
+    border: 1px solid #dee2e6;
+    border-radius: 0.4vw;
+    background: white;
+    color: rgb(110,111,114);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.pagination button:hover:not(.active) {
+    background: rgba(0,148,217,0.1);
+    border-color: rgb(0,148,217);
+    color: rgb(0,148,217);
+}
+
+.pagination button.active {
+    background: rgb(0,148,217);
+    color: white;
+    border-color: rgb(0,148,217);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="user-management-container">
+    <div class="user-management-header">
+        <h1><i class="bi bi-people"></i> {% if session.get('language') == 'en' %}User Management{% else %}用户管理{% endif %}</h1>
+        <div class="status-filter">
+            <button class="status-btn active" data-status="all">{% if session.get('language') == 'en' %}All{% else %}全部{% endif %}</button>
+            <button class="status-btn" data-status="approved">{% if session.get('language') == 'en' %}Enabled{% else %}已启用{% endif %}</button>
+            <button class="status-btn" data-status="disabled">{% if session.get('language') == 'en' %}Disabled{% else %}已禁用{% endif %}</button>
+        </div>
+    </div>
+
+    <table class="user-management-table">
+        <thead>
+            <tr>
+                <th>{% if session.get('language') == 'en' %}Username{% else %}用户名{% endif %}</th>
+                <th>{% if session.get('language') == 'en' %}Registration Time{% else %}注册时间{% endif %}</th>
+                <th>{% if session.get('language') == 'en' %}Status{% else %}状态{% endif %}</th>
+                <th>{% if session.get('language') == 'en' %}Actions{% else %}操作{% endif %}</th>
+            </tr>
+        </thead>
+        <tbody id="userList">
+            <!-- 数据将通过JavaScript动态添加 -->
+        </tbody>
+    </table>
+
+    <div id="pagination" class="pagination">
+        <!-- 分页将通过JavaScript动态添加 -->
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentStatus = 'all';
+let currentPage = 1;
+
+// 获取当前语言设置
+const currentLanguage = '{{ session.get("language", "zh") }}';
+
+// 多语言文本
+const userTranslations = {
+    zh: {
+        approved: '已启用',
+        disabled: '已禁用',
+        disable: '禁用',
+        enable: '启用',
+        disableConfirm: '确定要禁用该用户吗？',
+        enableConfirm: '确定要启用该用户吗？',
+        userDisabled: '用户已禁用',
+        userEnabled: '用户已启用',
+        operationFailed: '操作失败',
+        loadFailed: '加载失败'
+    },
+    en: {
+        approved: 'Enabled',
+        disabled: 'Disabled',
+        disable: 'Disable',
+        enable: 'Enable',
+        disableConfirm: 'Are you sure you want to disable this user?',
+        enableConfirm: 'Are you sure you want to enable this user?',
+        userDisabled: 'User disabled',
+        userEnabled: 'User enabled',
+        operationFailed: 'Operation failed',
+        loadFailed: 'Load failed'
+    }
+};
+
+// 获取翻译文本的辅助函数
+function getUserText(key) {
+    return userTranslations[currentLanguage] && userTranslations[currentLanguage][key] 
+        ? userTranslations[currentLanguage][key] 
+        : userTranslations.zh[key];
+}
+
+async function loadUsers(status = 'all', page = 1) {
+    try {
+        const response = await fetch(`/api/users?status=${status}&page=${page}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+            const tbody = document.getElementById('userList');
+            tbody.innerHTML = data.users.map(user => `
+                <tr>
+                    <td>${user.username}</td>
+                    <td>${user.register_time}</td>
+                    <td>
+                        <span class="status-badge status-${user.status}">
+                            ${getStatusText(user.status)}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            ${user.status === 'approved' ? `
+                                <button class="action-btn disable-btn" onclick="disableUser(${user.id})">
+                                    <i class="bi bi-slash-circle"></i>
+                                    ${getUserText('disable')}
+                                </button>
+                            ` : ''}
+                            ${user.status === 'disabled' ? `
+                                <button class="action-btn enable-btn" onclick="enableUser(${user.id})">
+                                    <i class="bi bi-check-circle"></i>
+                                    ${getUserText('enable')}
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            updatePagination(data.total_pages, page);
+        } else {
+            throw new Error(data.error || getUserText('loadFailed'));
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+function updatePagination(totalPages, currentPage) {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    for (let i = 1; i <= totalPages; i++) {
+        const button = document.createElement('button');
+        button.textContent = i;
+        button.className = i === currentPage ? 'active' : '';
+        button.onclick = () => {
+            currentPage = i;
+            loadUsers(currentStatus, i);
+        };
+        pagination.appendChild(button);
+    }
+}
+
+function getStatusText(status) {
+    const statusMap = {
+        'approved': getUserText('approved'),
+        'disabled': getUserText('disabled')
+    };
+    return statusMap[status] || status;
+}
+
+async function disableUser(id) {
+    if (!confirm(getUserText('disableConfirm'))) return;
+    
+    try {
+        const response = await fetch(`/api/users/${id}/disable`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(getUserText('userDisabled'), 'success');
+            loadUsers(currentStatus, currentPage);
+        } else {
+            throw new Error(data.error || getUserText('operationFailed'));
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function enableUser(id) {
+    if (!confirm(getUserText('enableConfirm'))) return;
+    
+    try {
+        const response = await fetch(`/api/users/${id}/enable`, {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            showToast(getUserText('userEnabled'), 'success');
+            loadUsers(currentStatus, currentPage);
+        } else {
+            throw new Error(data.error || getUserText('operationFailed'));
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+document.querySelectorAll('.status-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentStatus = btn.dataset.status;
+        currentPage = 1;
+        loadUsers(currentStatus, currentPage);
+    });
+});
+
+loadUsers();
+</script>
+{% endblock %}
+
+.disable-btn

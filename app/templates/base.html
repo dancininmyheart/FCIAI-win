@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="{% if session.get('language') == 'en' %}en{% else %}zh-CN{% endif %}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- 添加Font Awesome图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- 模态框 -->
+    <div id="messageModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()"><i class="fas fa-times"></i></span>
+            <p id="modalMessage"></p>
+            <button class="modal-button" onclick="closeModal()">确定</button>
+        </div>
+    </div>
+    
+    {% block content %}{% endblock %}
+    
+    <script>
+        function showModal(message) {
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('messageModal').style.display = 'block';
+            setTimeout(() => {
+                document.querySelector('.modal-content').style.opacity = '1';
+            }, 10);
+        }
+
+        function closeModal() {
+            document.querySelector('.modal-content').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('messageModal').style.display = 'none';
+            }, 300);
+        }
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    showModal("{{ message }}");
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        window.onclick = function(event) {
+            var modal = document.getElementById('messageModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

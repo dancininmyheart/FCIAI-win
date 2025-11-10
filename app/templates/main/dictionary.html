@@ -1,0 +1,1352 @@
+{% extends "main/base_layout.html" %}
+
+{% block title %}{% if session.get('language') == 'en' %}Dictionary Management{% else %}词库管理{% endif %}{% endblock %}
+
+{% block styles %}
+<style>
+    /* 重写容器样式 */
+.container {
+    margin-left: 17vw !important;
+    width: 83vw !important;
+    background-color: #f8f9fa;
+    color: rgb(110,111,114);
+    line-height: 1.6;
+    padding: 1.4vw;
+    min-height: 100vh;
+    box-sizing: border-box;
+}
+
+/* 页面标题 */
+h1 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: rgb(0,148,217);
+    margin-bottom: 2.1vw;
+    display: flex;
+    align-items: center;
+    gap: 0.7vw;
+}
+
+h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: rgb(0,148,217);
+    margin-bottom: 1.4vw;
+}
+
+/* 统计信息区域 */
+.stats-section {
+    background: white;
+    border-radius: 0.8vw;
+    padding: 1.8vw;
+    margin-bottom: 2.1vw;
+    display: flex;
+    align-items: center;
+    gap: 2.8vw;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.stats-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stats-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: rgb(0,148,217);
+    margin-bottom: 0.4vw;
+}
+
+.stats-label {
+    font-size: 1rem;
+    color: rgb(110,111,114);
+}
+
+/* 停翻词管理 */
+.stop-words-section {
+    background: white;
+    border-radius: 0.8vw;
+    padding: 1.8vw;
+    margin-bottom: 2.1vw;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.stop-words-input-group {
+    display: flex;
+    gap: 0.7vw;
+    margin-bottom: 1.4vw;
+}
+
+.stop-words-input-group input {
+    flex: 1;
+    padding: 0.8vw 1.2vw;
+    border: 1px solid #dee2e6;
+    border-radius: 0.4vw;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.stop-words-input-group input:focus {
+    outline: none;
+    border-color: rgb(0,148,217);
+    box-shadow: 0 0 0 0.2vw rgba(0,148,217,0.2);
+}
+
+.stop-words-input-group button {
+    padding: 0.8vw 1.4vw;
+    background: rgb(0,148,217);
+    color: white;
+    border: none;
+    border-radius: 0.4vw;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4vw;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.stop-words-input-group button:hover {
+    background: rgb(0,120,180);
+}
+
+.stop-words-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7vw;
+}
+
+.stop-word-item {
+    display: flex;
+    align-items: center;
+    background: #e9ecef;
+    border-radius: 1rem;
+    padding: 0.4vw 0.8vw;
+    font-size: 0.9rem;
+}
+
+.stop-word-item span {
+    margin-right: 0.4vw;
+}
+
+/* 添加翻译 */
+.add-section {
+    background: white;
+    border-radius: 0.8vw;
+    padding: 1.8vw;
+    margin-bottom: 2.1vw;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.input-group {
+    display: flex;
+    gap: 0.7vw;
+    margin-bottom: 1.4vw;
+    flex-wrap: wrap;
+}
+
+.input-group input {
+    flex: 1;
+    min-width: 120px;
+    padding: 0.8vw 1.2vw;
+    border: 1px solid #dee2e6;
+    border-radius: 0.4vw;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: rgb(0,148,217);
+    box-shadow: 0 0 0 0.2vw rgba(0,148,217,0.2);
+}
+
+.input-group button {
+    padding: 0.8vw 1.4vw;
+    background: rgb(0,148,217);
+    color: white;
+    border: none;
+    border-radius: 0.4vw;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4vw;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.input-group button:hover {
+    background: rgb(0,120,180);
+}
+
+/* 搜索栏 */
+.search-section {
+    background: white;
+    border-radius: 0.8vw;
+    padding: 1.8vw;
+    margin-bottom: 2.1vw;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.search-container {
+    display: flex;
+    gap: 0.7vw;
+}
+
+.search-container input {
+    flex: 1;
+    padding: 0.8vw 1.2vw;
+    border: 1px solid #dee2e6;
+    border-radius: 0.4vw;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+}
+
+.search-container input:focus {
+    outline: none;
+    border-color: rgb(0,148,217);
+    box-shadow: 0 0 0 0.2vw rgba(0,148,217,0.2);
+}
+
+.search-container button {
+    padding: 0.8vw 1.4vw;
+    background: rgb(0,148,217);
+    color: white;
+    border: none;
+    border-radius: 0.4vw;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.4vw;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.search-container button:hover {
+    background: rgb(0,120,180);
+}
+
+/* 词库表格 */
+.table-section {
+    background: white;
+    border-radius: 0.8vw;
+    padding: 1.8vw;
+    margin-bottom: 2.1vw;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.table-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.4vw;
+    flex-wrap: wrap;
+    gap: 1vw;
+}
+
+.view-toggle {
+    display: flex;
+    background: #e9ecef;
+    border-radius: 0.4vw;
+    overflow: hidden;
+}
+
+.view-toggle button {
+    padding: 0.5vw 1vw;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.view-toggle button.active {
+    background: rgb(0,148,217);
+    color: white;
+}
+
+.view-toggle button:not(.active):hover {
+    background: #dee2e6;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th, td {
+    padding: 0.8vw 1vw;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    position: sticky;
+    top: 0;
+}
+
+tr:hover {
+    background: #f8f9fa;
+}
+
+.action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.4vw;
+    border-radius: 0.3vw;
+    color: rgb(110,111,114);
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.action-btn:hover {
+    color: rgb(0,148,217);
+    background: rgba(0,148,217,0.1);
+}
+
+/* 分页 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.5vw;
+    margin-top: 1.4vw;
+}
+
+.pagination button {
+    padding: 0.6vw 1.2vw;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.4vw;
+    color: rgb(110,111,114);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.pagination button:hover {
+    background: rgba(0,148,217,0.1);
+    border-color: rgb(0,148,217);
+    color: rgb(0,148,217);
+}
+
+.pagination button.active {
+    background: rgb(0,148,217);
+    color: white;
+    border-color: rgb(0,148,217);
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 2.8vw;
+    color: rgb(110,111,114);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: rgba(0,148,217,0.5);
+    margin-bottom: 1.4vw;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<h1><i class="bi bi-book"></i> {% if session.get('language') == 'en' %}My Dictionary{% else %}我的词库{% endif %}</h1>
+
+<script>
+// 在JavaScript中定义当前用户ID，避免在模板字符串中使用Jinja2语法
+const CURRENT_USER_ID = {{ current_user.id }};
+
+// 获取当前语言设置
+const currentLanguage = '{{ session.get("language", "zh") }}';
+
+// 多语言文本
+const translations = {
+    zh: {
+        totalTranslations: '词条总数',
+        totalStopWords: '停翻词数量',
+        stopWordsManagement: '停翻词管理',
+        addNewTranslation: '添加新翻译',
+        addStopWordPlaceholder: '输入要添加的停翻词',
+        add: '添加',
+        englishPlaceholder: '英文',
+        chinesePlaceholder: '中文',
+        dutchPlaceholder: '荷兰语',
+        categoryPlaceholder: '标签（多个标签用分号分隔）',
+        setPublicEntry: '设为公共词条（所有用户可见）',
+        searchPlaceholder: '搜索英文、中文、荷兰语、标签等...',
+        search: '搜索',
+        myEntries: '我的词条',
+        publicEntries: '公共词条',
+        allEntries: '所有词条',
+        english: '英文',
+        chinese: '中文',
+        dutch: '荷兰语',
+        category: '标签',
+        createTime: '创建时间',
+        type: '类型',
+        creator: '创建者',
+        actions: '操作',
+        noData: '暂无数据',
+        noStopWords: '暂无停翻词',
+        publicType: '公共',
+        privateType: '私人',
+        me: '我',
+        // JavaScript消息
+        englishChineseRequired: '英文和中文为必填项',
+        pleaseEnterStopWord: '请输入停翻词',
+        addSuccess: '添加成功',
+        addFailed: '添加失败',
+        getStatsFailedTranslation: '获取统计信息失败',
+        getStatsFailedStopWords: '获取停翻词统计失败',
+        loadDataFailed: '加载数据失败',
+        loadStopWordsFailed: '加载停翻词失败',
+        translationNotFound: '未找到该翻译',
+        englishPrompt: '英文:',
+        chinesePrompt: '中文:',
+        dutchPrompt: '荷兰语:',
+        categoryPrompt: '标签:',
+        userCancel: '用户取消',
+        updateSuccess: '更新成功',
+        updateFailed: '更新失败',
+        deleteTranslationConfirm: '确定要删除这个翻译吗？',
+        deleteStopWordConfirm: '确定要删除这个停翻词吗？',
+        deleteSuccess: '删除成功',
+        deleteFailed: '删除失败',
+        serverReturnedNonJSON: '服务器返回了非JSON响应'
+    },
+    en: {
+        totalTranslations: 'Total Entries',
+        totalStopWords: 'Stop Words Count',
+        stopWordsManagement: 'Stop Words Management',
+        addNewTranslation: 'Add New Translation',
+        addStopWordPlaceholder: 'Enter stop word to add',
+        add: 'Add',
+        englishPlaceholder: 'English',
+        chinesePlaceholder: 'Chinese',
+        dutchPlaceholder: 'Dutch',
+        categoryPlaceholder: 'Tag (separate multiple tags with semicolon)',
+        setPublicEntry: 'Set as public entry (visible to all users)',
+        searchPlaceholder: 'Search English, Chinese, Dutch, tag, etc...',
+        search: 'Search',
+        myEntries: 'My Entries',
+        publicEntries: 'Public Entries',
+        allEntries: 'All Entries',
+        english: 'English',
+        chinese: 'Chinese',
+        dutch: 'Dutch',
+        category: 'Tag',
+        createTime: 'Created Time',
+        type: 'Type',
+        creator: 'Creator',
+        actions: 'Actions',
+        noData: 'No data available',
+        noStopWords: 'No stop words',
+        publicType: 'Public',
+        privateType: 'Private',
+        me: 'Me',
+        // JavaScript消息
+        englishChineseRequired: 'English and Chinese are required fields',
+        pleaseEnterStopWord: 'Please enter a stop word',
+        addSuccess: 'Added successfully',
+        addFailed: 'Failed to add',
+        getStatsFailedTranslation: 'Failed to get statistics',
+        getStatsFailedStopWords: 'Failed to get stop words statistics',
+        loadDataFailed: 'Failed to load data',
+        loadStopWordsFailed: 'Failed to load stop words',
+        translationNotFound: 'Translation not found',
+        englishPrompt: 'English:',
+        chinesePrompt: 'Chinese:',
+        dutchPrompt: 'Dutch:',
+        categoryPrompt: 'Tag:',
+        userCancel: 'User cancelled',
+        updateSuccess: 'Updated successfully',
+        updateFailed: 'Failed to update',
+        deleteTranslationConfirm: 'Are you sure you want to delete this translation?',
+        deleteStopWordConfirm: 'Are you sure you want to delete this stop word?',
+        deleteSuccess: 'Deleted successfully',
+        deleteFailed: 'Failed to delete',
+        serverReturnedNonJSON: 'Server returned non-JSON response'
+    }
+};
+
+// 获取翻译文本的辅助函数
+function getText(key, params = {}) {
+    let text = translations[currentLanguage] && translations[currentLanguage][key] 
+        ? translations[currentLanguage][key] 
+        : translations.zh[key];
+    
+    // 替换参数
+    Object.keys(params).forEach(param => {
+        text = text.replace(`{${param}}`, params[param]);
+    });
+    
+    return text;
+}
+</script>
+
+<!-- 统计信息 -->
+<section class="stats-section">
+    <div class="stats-item">
+        <div class="stats-value" id="totalTranslations">0</div>
+        <div class="stats-label">{% if session.get('language') == 'en' %}Total Entries{% else %}词条总数{% endif %}</div>
+    </div>
+    <div class="stats-item">
+        <div class="stats-value" id="totalStopWords">0</div>
+        <div class="stats-label">{% if session.get('language') == 'en' %}Stop Words Count{% else %}停翻词数量{% endif %}</div>
+    </div>
+</section>
+
+<!-- 添加停翻词 -->
+<section class="stop-words-section">
+    <h2>{% if session.get('language') == 'en' %}Stop Words Management{% else %}停翻词管理{% endif %}</h2>
+    <div class="stop-words-input-group">
+        <input type="text" id="stopWordInput" placeholder="{% if session.get('language') == 'en' %}Enter stop word to add{% else %}输入要添加的停翻词{% endif %}">
+        <button id="addStopWordBtn">
+            <i class="bi bi-plus-lg"></i>
+            {% if session.get('language') == 'en' %}Add{% else %}添加{% endif %}
+        </button>
+    </div>
+    <div id="stopWordsList" class="stop-words-list">
+        <!-- 停翻词列表将通过JavaScript动态插入 -->
+    </div>
+</section>
+
+<!-- 批量上传翻译 -->
+<section class="add-section">
+    <h2>{% if session.get('language') == 'en' %}Batch Upload Translations{% else %}批量上传翻译{% endif %}</h2>
+    <div class="input-group">
+        <button id="downloadTemplateBtn" class="action-btn">
+            <i class="bi bi-download"></i>
+            {% if session.get('language') == 'en' %}Download Template{% else %}下载模板{% endif %}
+        </button>
+        <input type="file" id="batchUploadFile" accept=".xlsx,.xls" style="display: none;">
+        <button id="selectFileBtn" class="action-btn">
+            <i class="bi bi-upload"></i>
+            {% if session.get('language') == 'en' %}Select File{% else %}选择文件{% endif %}
+        </button>
+        <button id="uploadBatchBtn" class="action-btn" disabled>
+            <i class="bi bi-cloud-upload"></i>
+            {% if session.get('language') == 'en' %}Upload{% else %}上传{% endif %}
+        </button>
+    </div>
+    <div id="selectedFileName" style="margin-top: 0.7vw; color: #666; font-size: 0.9rem;"></div>
+    <div id="uploadProgress" style="display: none; margin-top: 1vw;">
+        <div style="width: 100%; height: 1.4vw; background: #e9ecef; border-radius: 0.7vw; overflow: hidden;">
+            <div id="progressBar" style="height: 100%; background: rgb(0,148,217); width: 0%; transition: width 0.3s ease;"></div>
+        </div>
+        <div id="progressText" style="text-align: center; margin-top: 0.4vw; font-size: 0.9rem; color: #666;"></div>
+    </div>
+</section>
+<!-- 添加新翻译 -->
+<section class="add-section">
+    <h2>{% if session.get('language') == 'en' %}Add New Translation{% else %}添加新翻译{% endif %}</h2>
+    <div class="input-group">
+        <input type="text" id="englishInput" placeholder="{% if session.get('language') == 'en' %}English{% else %}英文{% endif %}" style="background-color: #ffffff; color: #333333; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px;">
+        <input type="text" id="chineseInput" placeholder="{% if session.get('language') == 'en' %}Chinese{% else %}中文{% endif %}" style="background-color: #ffffff; color: #333333; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px;">
+        <input type="text" id="dutchInput" placeholder="{% if session.get('language') == 'en' %}Dutch{% else %}荷兰语{% endif %}" style="background-color: #ffffff; color: #333333; border: 1px solid #ddd; border-radius: 4px; padding: 8px 12px;">
+        <input type="text" id="categoryInput" placeholder="{% if session.get('language') == 'en' %}Tag (separate multiple tags with semicolon){% else %}标签（多个标签用分号分隔）{% endif %}" style="display:none;">
+        <button id="pickCategoryBtn" class="action-btn">
+            <i class="bi bi-tags"></i>
+            {% if session.get('language') == 'en' %}Choose Tag{% else %}选择标签{% endif %}
+        </button>
+        <button id="addBtn">
+            <i class="bi bi-plus-lg"></i>
+            {% if session.get('language') == 'en' %}Add{% else %}添加{% endif %}
+        </button>
+    </div>
+    {% if current_user.is_administrator() %}
+    <div class="input-group">
+        <label>
+            <input type="checkbox" id="isPublicCheckbox"> 
+            {% if session.get('language') == 'en' %}Set as public entry (visible to all users){% else %}设为公共词条（所有用户可见）{% endif %}
+        </label>
+    </div>
+    {% endif %}
+</section>
+
+<!-- 标签选择弹窗 -->
+<div id="categoryModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:1200; align-items:center; justify-content:center;">
+  <div style="background:#fff; width:520px; max-width:92vw; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,0.15);">
+    <div style="padding:14px 16px; border-bottom:1px solid #eee; display:flex; align-items:center;">
+      <strong style="color:rgb(0,148,217);">{% if session.get('language') == 'en' %}Select Tag{% else %}选择标签{% endif %}</strong>
+      <button id="closeCategoryModal" style="margin-left:auto; background:none; border:none; cursor:pointer; font-size:18px;">×</button>
+    </div>
+    <div style="padding:14px 16px; max-height:60vh; overflow:auto;">
+      <div style="margin-bottom:10px; display:flex; gap:8px; align-items:center;">
+        <label><input type="checkbox" id="multiSelectToggle"> {% if session.get('language') == 'en' %}Multi-select{% else %}多选{% endif %}</label>
+      </div>
+      <div id="categoryList" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <input type="text" id="newCategoryInput" placeholder="{% if session.get('language') == 'en' %}New tag{% else %}新增标签{% endif %}" style="flex:1; padding:8px 10px; border:1px solid #ddd; border-radius:6px;">
+        <button id="addCategoryBtn" class="action-btn"><i class="bi bi-plus-lg"></i> {% if session.get('language') == 'en' %}Add{% else %}添加{% endif %}</button>
+      </div>
+    </div>
+    <div style="padding:12px 16px; border-top:1px solid #eee; display:flex; gap:10px; justify-content:flex-end;">
+      <button id="confirmCategoryBtn" class="action-btn"><i class="bi bi-check-lg"></i> {% if session.get('language') == 'en' %}Confirm{% else %}确定{% endif %}</button>
+      <button id="cancelCategoryBtn" class="action-btn" style="background:#6c757d; color:#fff;"><i class="bi bi-x-lg"></i> {% if session.get('language') == 'en' %}Cancel{% else %}取消{% endif %}</button>
+    </div>
+  </div>
+</div>
+
+<!-- 移除了误放置的独立添加按钮区块，按钮已并入上方 input-group -->
+
+<!-- 搜索栏 -->
+<section class="search-section">
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="{% if session.get('language') == 'en' %}Search English, Chinese, Dutch, tag, etc...{% else %}搜索英文、中文、荷兰语、标签等...{% endif %}">
+        <button id="searchBtn">
+            <i class="bi bi-search"></i>
+            {% if session.get('language') == 'en' %}Search{% else %}搜索{% endif %}
+        </button>
+    </div>
+</section>
+
+<!-- 词库表格 -->
+<section class="table-section">
+    <div class="table-controls">
+        <div class="view-toggle">
+            <button class="active" data-view="private">{% if session.get('language') == 'en' %}My Entries{% else %}我的词条{% endif %}</button>
+            <button data-view="public">{% if session.get('language') == 'en' %}Public Entries{% else %}公共词条{% endif %}</button>
+            <button data-view="all">{% if session.get('language') == 'en' %}All Entries{% else %}所有词条{% endif %}</button>
+        </div>
+    </div>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>{% if session.get('language') == 'en' %}English{% else %}英文{% endif %}</th>
+                    <th>{% if session.get('language') == 'en' %}Chinese{% else %}中文{% endif %}</th>
+                    <th>{% if session.get('language') == 'en' %}Dutch{% else %}荷兰语{% endif %}</th>
+                    <th>{% if session.get('language') == 'en' %}Tag{% else %}标签{% endif %}</th>
+                    <th>{% if session.get('language') == 'en' %}Created Time{% else %}创建时间{% endif %}</th>
+                    <th>{% if session.get('language') == 'en' %}Type{% else %}类型{% endif %}</th>
+                    <th>{% if session.get('language') == 'en' %}Creator{% else %}创建者{% endif %}</th>
+                    <th>{% if session.get('language') == 'en' %}Actions{% else %}操作{% endif %}</th>
+                </tr>
+            </thead>
+            <tbody id="translationTable">
+                <!-- 数据将通过JavaScript动态插入 -->
+            </tbody>
+        </table>
+    </div>
+    <div id="emptyState" class="empty-state" style="display: none;">
+        <i class="bi bi-book"></i>
+        <p>{% if session.get('language') == 'en' %}No data available{% else %}暂无数据{% endif %}</p>
+    </div>
+    <div class="pagination" id="pagination">
+        <!-- 分页将通过JavaScript动态插入 -->
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 当前页面和搜索词
+let currentPage = 1;
+let currentSearch = '';
+let currentView = 'private'; // private, public, all
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadTranslations();
+    loadStopWords();
+    updateStats();
+    
+    // 绑定事件
+    document.getElementById('addBtn').addEventListener('click', addTranslation);
+    document.getElementById('pickCategoryBtn').addEventListener('click', openCategoryModal);
+    document.getElementById('addStopWordBtn').addEventListener('click', addStopWord);
+    document.getElementById('searchBtn').addEventListener('click', () => {
+        currentPage = 1;
+        loadTranslations(document.getElementById('searchInput').value.trim());
+    });
+
+    // 绑定批量上传事件
+    document.getElementById('downloadTemplateBtn').addEventListener('click', downloadTemplate);
+    document.getElementById('selectFileBtn').addEventListener('click', selectFile);
+    document.getElementById('uploadBatchBtn').addEventListener('click', uploadBatch);
+    document.getElementById('batchUploadFile').addEventListener('change', handleFileSelect);
+    
+    // 回车搜索
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            currentPage = 1;
+            loadTranslations(this.value.trim());
+        }
+    });
+    
+    // 视图切换
+    const viewButtons = document.querySelectorAll('.view-toggle button');
+    viewButtons.forEach((button, index) => {
+        button.addEventListener('click', function() {
+            viewButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+            this.classList.add('active');
+            currentView = this.dataset.view;
+            currentPage = 1;
+            // 保留搜索框内容并重新加载数据
+            currentSearch = document.getElementById('searchInput').value.trim();
+            loadTranslations(currentSearch, currentPage);
+        });
+    });
+    // 分类弹窗事件
+    document.getElementById('closeCategoryModal').addEventListener('click', closeCategoryModal);
+    document.getElementById('cancelCategoryBtn').addEventListener('click', closeCategoryModal);
+    document.getElementById('confirmCategoryBtn').addEventListener('click', confirmCategorySelection);
+    document.getElementById('addCategoryBtn').addEventListener('click', addNewCategoryChip);
+    // 初次加载分类
+    loadCategories();
+});
+
+// 更新统计信息
+async function updateStats() {
+    try {
+        const response = await fetch('/api/translations/stats');
+        const data = await response.json();
+        
+        document.getElementById('totalTranslations').textContent = data.total_translations || 0;
+    } catch (error) {
+        console.error(getText('getStatsFailedTranslation'), error);
+    }
+    
+    try {
+        const response = await fetch('/api/stop-words/stats');
+        const data = await response.json();
+        
+        document.getElementById('totalStopWords').textContent = data.total_stop_words || 0;
+    } catch (error) {
+        console.error(getText('getStatsFailedStopWords'), error);
+    }
+}
+
+// 添加翻译
+async function addTranslation() {
+    const english = document.getElementById('englishInput').value.trim();
+    const chinese = document.getElementById('chineseInput').value.trim();
+    const dutch = document.getElementById('dutchInput').value.trim();
+    const category = document.getElementById('categoryInput').value.trim();
+    const isPublic = document.getElementById('isPublicCheckbox')?.checked || false;
+    
+    if (!english || !chinese) {
+        showToast(getText('englishChineseRequired'), 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/translations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                english, 
+                chinese, 
+                dutch,
+
+                dutch, 
+                category,
+                is_public: isPublic
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast(getText('addSuccess'), 'success');
+            document.getElementById('englishInput').value = '';
+            document.getElementById('chineseInput').value = '';
+            document.getElementById('dutchInput').value = '';
+            document.getElementById('categoryInput').value = '';
+            if (document.getElementById('isPublicCheckbox')) {
+                document.getElementById('isPublicCheckbox').checked = false;
+            }
+            loadTranslations(currentSearch, currentPage);
+            updateStats();
+        } else {
+            throw new Error(result.error || getText('addFailed'));
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+// 分类选择逻辑
+let selectedCategories = new Set();
+let allowMultiSelect = false;
+let originalCategories = []; // 存储原始分类列表
+let tempAddedCategories = new Set(); // 存储临时添加的分类
+
+function openCategoryModal() {
+    // 保存当前选择状态，用于取消时恢复
+    selectedCategories = new Set();
+    tempAddedCategories = new Set();
+    document.getElementById('categoryModal').style.display = 'flex';
+}
+
+function closeCategoryModal() {
+    // 取消时清理临时添加的分类，恢复到原始状态
+    selectedCategories.clear();
+    tempAddedCategories.clear();
+    document.getElementById('categoryModal').style.display = 'none';
+    // 重新加载原始分类列表
+    loadCategories();
+}
+
+async function loadCategories() {
+    try {
+        const res = await fetch('/api/translations/categories');
+        const data = await res.json();
+        originalCategories = data.categories || [];
+        renderCategoryChips(originalCategories);
+    } catch (e) {
+        console.error('Load categories error', e);
+    }
+}
+
+function renderCategoryChips(categories) {
+    const list = document.getElementById('categoryList');
+    list.innerHTML = '';
+    // toggle multi-select
+    const multiToggle = document.getElementById('multiSelectToggle');
+    allowMultiSelect = !!multiToggle?.checked;
+    if (multiToggle) {
+        multiToggle.onchange = () => {
+            allowMultiSelect = multiToggle.checked;
+            // 如果切到单选，只保留一个
+            if (!allowMultiSelect && selectedCategories.size > 1) {
+                const first = Array.from(selectedCategories)[0];
+                selectedCategories = new Set([first]);
+            }
+            updateSelectedDisplay();
+            renderCategoryChips(categories);
+        };
+    }
+    categories.forEach(cat => {
+        const isSelected = selectedCategories.has(cat);
+        const btn = document.createElement('button');
+        btn.className = 'action-btn';
+        btn.style.background = isSelected ? 'rgb(0,148,217)' : '#e9ecef';
+        btn.style.color = isSelected ? '#fff' : '#333';
+        btn.textContent = cat;
+        btn.title = cat;
+        btn.onclick = () => toggleCategory(cat);
+        list.appendChild(btn);
+    });
+}
+
+function toggleCategory(cat) {
+    if (allowMultiSelect) {
+        if (selectedCategories.has(cat)) selectedCategories.delete(cat); else selectedCategories.add(cat);
+    } else {
+        selectedCategories = new Set([cat]);
+    }
+    updateSelectedDisplay();
+    // 重新渲染保持样式
+    const chips = Array.from(document.getElementById('categoryList').children).map(c => c.textContent);
+    renderCategoryChips(chips);
+}
+
+function addNewCategoryChip() {
+    const input = document.getElementById('newCategoryInput');
+    const val = (input.value || '').trim();
+    if (!val) return;
+    
+    // 检查是否已存在于原始分类中
+    if (originalCategories.includes(val)) {
+        showToast(getCurrentLanguage() === 'en' ? 'Tag already exists' : '标签已存在', 'warning');
+        return;
+    }
+    
+    if (!allowMultiSelect) selectedCategories.clear();
+    selectedCategories.add(val);
+    tempAddedCategories.add(val); // 标记为临时添加
+    input.value = '';
+    
+    // 将新增标签插入到当前chip列表展示
+    const chips = [...originalCategories, ...Array.from(tempAddedCategories)];
+    renderCategoryChips(chips);
+    updateSelectedDisplay();
+}
+
+function confirmCategorySelection() {
+    // 将选择写入隐藏输入，按分号分隔
+    const categoryInput = document.getElementById('categoryInput');
+    categoryInput.value = Array.from(selectedCategories).join(';');
+    // 更新按钮显示
+    updateSelectedDisplay();
+    // 确认后清理临时分类标记
+    tempAddedCategories.clear();
+    document.getElementById('categoryModal').style.display = 'none';
+}
+
+function updateSelectedDisplay() {
+    const btn = document.getElementById('pickCategoryBtn');
+    const cats = Array.from(selectedCategories);
+    if (cats.length === 0) {
+        btn.innerHTML = '<i class="bi bi-tags"></i> ' + (getCurrentLanguage() === 'en' ? 'Choose Tag' : '选择标签');
+    } else {
+        btn.textContent = cats.join('; ');
+    }
+}
+
+function getCurrentLanguage() {
+    return '{{ session.get("language", "zh") }}';
+}
+
+// 添加停翻词
+async function addStopWord() {
+    const word = document.getElementById('stopWordInput').value.trim();
+    
+    if (!word) {
+        showToast(getText('pleaseEnterStopWord'), 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/stop-words', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ word })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast(getText('addSuccess'), 'success');
+            document.getElementById('stopWordInput').value = '';
+            loadStopWords();
+            updateStats();
+        } else {
+            throw new Error(result.error || getText('addFailed'));
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+// 加载翻译数据
+async function loadTranslations(searchTerm = '', page = 1) {
+    currentSearch = searchTerm;
+    currentPage = page;
+    
+    try {
+        const response = await fetch(`/api/translations?search=${searchTerm}&page=${page}&visibility=${currentView}`);
+        
+        // 检查响应是否为JSON格式
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            throw new Error(getText('serverReturnedNonJSON') + ': ' + text.substring(0, 100));
+        }
+        
+        const data = await response.json();
+        
+        const tbody = document.getElementById('translationTable');
+        const emptyState = document.getElementById('emptyState');
+        
+        if (data.translations.length === 0) {
+            tbody.innerHTML = '';
+            emptyState.style.display = 'block';
+        } else {
+            emptyState.style.display = 'none';
+            
+            tbody.innerHTML = data.translations.map(item => `
+                <tr>
+                    <td>${item.english}</td>
+                    <td>${item.chinese}</td>
+                    <td>${item.dutch || ''}</td>
+                    <td>${item.category || ''}</td>
+                    <td>${new Date(item.created_at).toLocaleString(currentLanguage === 'en' ? 'en-US' : 'zh-CN')}</td>
+                    <td>${item.is_public ? '<span style="color: #007bff;">' + getText('publicType') + '</span>' : getText('privateType')}</td>
+                    <td>${item.is_public && item.user ? item.user.username : (item.user_id == CURRENT_USER_ID ? getText('me') : '')}</td>
+                    <td>
+                        <button class="action-btn" onclick="editTranslation(${item.id})" title="${currentLanguage === 'en' ? 'Edit' : '编辑'}">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="action-btn" onclick="deleteTranslation(${item.id})" title="${currentLanguage === 'en' ? 'Delete' : '删除'}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 更新分页
+        updatePagination(data.total_pages, page);
+        
+    } catch (error) {
+        console.error(getText('loadDataFailed'), error);
+        showToast(getText('loadDataFailed') + ': ' + error.message, 'error');
+    }
+}
+
+// 加载停翻词列表
+async function loadStopWords() {
+    try {
+        const response = await fetch('/api/stop-words');
+        const data = await response.json();
+        
+        const stopWordsList = document.getElementById('stopWordsList');
+        
+        if (data.stop_words.length === 0) {
+            stopWordsList.innerHTML = '<div class="empty-state">' + getText('noStopWords') + '</div>';
+        } else {
+            stopWordsList.innerHTML = data.stop_words.map(item => `
+                <div class="stop-word-item">
+                    <span>${item.word}</span>
+                    <button class="action-btn" onclick="deleteStopWord(${item.id})" title="${currentLanguage === 'en' ? 'Delete' : '删除'}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        showToast(getText('loadStopWordsFailed'), 'error');
+    }
+}
+
+// 编辑翻译
+async function editTranslation(id) {
+    // 先获取当前翻译的信息
+    const response = await fetch(`/api/translations`);
+    const data = await response.json();
+    
+    const translation = data.translations.find(t => t.id === id);
+    if (!translation) {
+        showToast(getText('translationNotFound'), 'error');
+        return;
+    }
+    
+    // 显示编辑对话框
+    const newEnglish = prompt(getText('englishPrompt'), translation.english);
+    if (newEnglish === null) return; // 用户取消
+    
+    const newChinese = prompt(getText('chinesePrompt'), translation.chinese);
+    if (newChinese === null) return; // 用户取消
+    
+    const newDutch = prompt(getText('dutchPrompt'), translation.dutch || '');
+    const newCategory = prompt(getText('categoryPrompt'), translation.category || '');
+    
+    if (!newEnglish || !newChinese) {
+        showToast(getText('englishChineseRequired'), 'error');
+        return;
+    }
+    
+    try {
+        const updateResponse = await fetch(`/api/translations/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                english: newEnglish,
+                chinese: newChinese,
+                dutch: newDutch,
+                category: newCategory
+            })
+        });
+        
+        const result = await updateResponse.json();
+        
+        if (updateResponse.ok) {
+            showToast(getText('updateSuccess'), 'success');
+            loadTranslations(currentSearch, currentPage);
+            updateStats();
+        } else {
+            throw new Error(result.error || getText('updateFailed'));
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+// 删除翻译
+async function deleteTranslation(id) {
+    if (!confirm(getText('deleteTranslationConfirm'))) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/translations/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast(getText('deleteSuccess'), 'success');
+            loadTranslations(currentSearch, currentPage);
+            updateStats();
+        } else {
+            throw new Error(result.error || getText('deleteFailed'));
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+// 删除停翻词
+async function deleteStopWord(id) {
+    if (!confirm(getText('deleteStopWordConfirm'))) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/stop-words/${id}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showToast(getText('deleteSuccess'), 'success');
+            loadStopWords();
+            updateStats();
+        } else {
+            throw new Error(result.error || getText('deleteFailed'));
+        }
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+// 更新分页
+function updatePagination(totalPages, currentPage) {
+    const pagination = document.getElementById('pagination');
+    
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    
+    // 上一页
+    if (currentPage > 1) {
+        html += `<button onclick="loadTranslations('${currentSearch}', ${currentPage - 1})">&laquo;</button>`;
+    }
+    
+    // 页码
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage) {
+            html += `<button class="active">${i}</button>`;
+        } else {
+            html += `<button onclick="loadTranslations('${currentSearch}', ${i})">${i}</button>`;
+        }
+    }
+    
+    // 下一页
+    if (currentPage < totalPages) {
+        html += `<button onclick="loadTranslations('${currentSearch}', ${currentPage + 1})">&raquo;</button>`;
+    }
+    
+    pagination.innerHTML = html;
+}
+
+// 显示提示信息
+function showToast(message, type) {
+    // 创建提示元素
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+    `;
+
+    // 根据类型设置样式
+    if (type === 'success') {
+        toast.style.backgroundColor = '#28a745';
+    } else {
+        toast.style.backgroundColor = '#dc3545';
+    }
+
+    toast.textContent = message;
+
+    // 添加到页面
+    document.body.appendChild(toast);
+
+    // 显示动画
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+    }, 100);
+
+    // 3秒后移除
+    setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            document.body.removeChild(toast);
+        }, 300);
+    }, 3000);
+}
+
+// 批量上传相关功能
+// 下载模板文件
+async function downloadTemplate() {
+    try {
+        const response = await fetch('/api/translations/download_template');
+        if (!response.ok) {
+            throw new Error(getText('serverReturnedNonJSON'));
+        }
+
+        // 创建下载链接
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '批量上传词汇模板.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        showToast(getText('addSuccess'), 'success');
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+// 选择文件
+function selectFile() {
+    document.getElementById('batchUploadFile').click();
+}
+
+// 处理文件选择
+function handleFileSelect(event) {
+    const file = event.target.files[0];
+    const fileNameDiv = document.getElementById('selectedFileName');
+    const uploadBtn = document.getElementById('uploadBatchBtn');
+
+    if (file) {
+        // 验证文件类型
+        const allowedExtensions = ['xlsx', 'xls'];
+        const fileName = file.name.toLowerCase();
+        const fileExtension = fileName.split('.').pop();
+
+        if (!allowedExtensions.includes(fileExtension)) {
+            showToast(`不支持的文件类型: .${fileExtension}。请使用 Excel 文件 (.xlsx 或 .xls)`, 'error');
+            event.target.value = ''; // 清空文件选择
+            fileNameDiv.textContent = '';
+            uploadBtn.disabled = true;
+            return;
+        }
+
+        // 检查文件大小 (限制为 10MB)
+        const maxSize = 200 * 1024 * 1024; // 10MB
+        if (file.size > maxSize) {
+            showToast(`文件过大: ${(file.size / 1024 / 1024).toFixed(2)}MB。最大支持 200MB`, 'error');
+            event.target.value = ''; // 清空文件选择
+            fileNameDiv.textContent = '';
+            uploadBtn.disabled = true;
+            return;
+        }
+
+        fileNameDiv.textContent = `已选择: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
+        uploadBtn.disabled = false;
+    } else {
+        fileNameDiv.textContent = '';
+        uploadBtn.disabled = true;
+    }
+}
+
+// 上传批量文件
+async function uploadBatch() {
+    const fileInput = document.getElementById('batchUploadFile');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showToast(getText('pleaseEnterStopWord'), 'error'); // 复用提示信息
+        return;
+    }
+
+    const progressDiv = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+
+    // 显示进度条
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '正在上传文件...';
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch('/api/translations/batch_upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        // 更新进度
+        progressBar.style.width = '50%';
+        progressText.textContent = '正在处理数据...';
+
+        const result = await response.json();
+
+        if (response.ok) {
+            // 完成进度
+            progressBar.style.width = '100%';
+            progressText.textContent = '上传完成';
+
+            // 显示结果
+            let message = result.message;
+            if (result.error_count > 0 && result.errors) {
+                message += '\n\n错误详情:\n' + result.errors.slice(0, 3).join('\n');
+            }
+            showToast(message, result.error_count > 0 ? 'warning' : 'success');
+
+            // 刷新翻译列表和统计信息
+            loadTranslations(currentSearch, currentPage);
+            updateStats();
+
+            // 重置表单
+            fileInput.value = '';
+            document.getElementById('selectedFileName').textContent = '';
+            document.getElementById('uploadBatchBtn').disabled = true;
+
+        } else {
+            throw new Error(result.error || '上传失败');
+        }
+
+    } catch (error) {
+        progressText.textContent = '上传失败';
+
+        let errorMessage = error.message;
+        if (error.message.includes('文件解析失败')) {
+            // 如果是文件解析失败，尝试获取详细信息
+            if (result && result.details) {
+                errorMessage += '\n\n详细错误:\n' + result.details.join('\n');
+            }
+        }
+
+        showToast(errorMessage, 'error');
+    } finally {
+        // 隐藏进度条
+        setTimeout(() => {
+            progressDiv.style.display = 'none';
+        }, 2000);
+    }
+}
+</script>
+{% endblock %}
