@@ -9,11 +9,13 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import MSO_AUTO_SIZE
 from pptx.util import Pt, Inches
 import re
+
 # English-to-Chinese
 # from LLa_translate import translate
 # 温馨提示: 使用pipeline推理及在线体验功能的时候，尽量输入单句文本，如果是多句长文本建议人工分句，否则可能出现漏译或未译等情况！！！
 # from modelscope.pipelines import pipeline
 import logging
+
 # from modelscope.utils.constant import Tasks
 import difflib
 import re
@@ -26,10 +28,11 @@ from ..utils.ppt_utils import (
     find_most_similar,
     remove_invalid_utf8_chars,
     is_valid_reference,
-    is_page_number
+    is_page_number,
 )
 from ..utils.translation_utils import build_map
 from .translate_by_qwen import translate_qwen, get_field
+
 # 导入其他翻译模型
 # from .translate_by_deepseek import translate_deepseek
 # from .translate_by_gpt4o import translate_gpt4o
@@ -37,18 +40,17 @@ from colorama import init
 
 from ..utils.task_queue import translation_queue
 
-logging.basicConfig(level=logging.INFO, format='%(message)s', encoding='utf-8')
 # 初始化 colorama
 init()
 
 # 示例字符串
-src_language = 'English'  # 源语言
-trg_language = 'Chinese'  # 目标语言
+src_language = "English"  # 源语言
+trg_language = "Chinese"  # 目标语言
 
 
 def match(text):
     # 使用正则表达式查找被 {} 包裹的内容
-    matches = re.findall(r'\{([^}]+)\}', text)
+    matches = re.findall(r"\{([^}]+)\}", text)
     # 打印匹配到的内容
     # print(matches)
 
@@ -83,9 +85,9 @@ def calculate_translation_similarity(original_text: str, translated_text: str) -
         # 转小写
         normalized = text.lower()
         # 去除多余空格
-        normalized = ' '.join(normalized.split())
+        normalized = " ".join(normalized.split())
         # 去除常见标点符号
-        normalized = re.sub(r'[.,!?;:()\[\]{}"\'`~]', '', normalized)
+        normalized = re.sub(r'[.,!?;:()\[\]{}"\'`~]', "", normalized)
         return normalized.strip()
 
     norm_original = normalize_text(original_text)
@@ -108,8 +110,9 @@ def calculate_translation_similarity(original_text: str, translated_text: str) -
     return combined_similarity
 
 
-def should_skip_translation_insertion(original_text: str, translated_text: str,
-                                    threshold: float = 0.9, debug: bool = False) -> bool:
+def should_skip_translation_insertion(
+    original_text: str, translated_text: str, threshold: float = 0.9, debug: bool = False
+) -> bool:
     """
     判断是否应该跳过翻译插入
 
@@ -148,11 +151,11 @@ def save_shape_geometry(shape):
     """保存形状的几何属性"""
     try:
         return {
-            'width': shape.width,
-            'height': shape.height,
-            'left': shape.left,
-            'top': shape.top,
-            'rotation': getattr(shape, 'rotation', 0)
+            "width": shape.width,
+            "height": shape.height,
+            "left": shape.left,
+            "top": shape.top,
+            "rotation": getattr(shape, "rotation", 0),
         }
     except Exception as e:
         logging.debug(f"保存形状几何属性失败: {e}")
@@ -166,21 +169,21 @@ def restore_shape_geometry(shape, geometry_info):
             return False
 
         # 恢复尺寸和位置
-        if 'width' in geometry_info:
-            shape.width = geometry_info['width']
+        if "width" in geometry_info:
+            shape.width = geometry_info["width"]
 
-        if 'height' in geometry_info:
-            shape.height = geometry_info['height']
+        if "height" in geometry_info:
+            shape.height = geometry_info["height"]
 
-        if 'left' in geometry_info:
-            shape.left = geometry_info['left']
+        if "left" in geometry_info:
+            shape.left = geometry_info["left"]
 
-        if 'top' in geometry_info:
-            shape.top = geometry_info['top']
+        if "top" in geometry_info:
+            shape.top = geometry_info["top"]
 
-        if 'rotation' in geometry_info:
+        if "rotation" in geometry_info:
             try:
-                shape.rotation = geometry_info['rotation']
+                shape.rotation = geometry_info["rotation"]
             except:
                 pass
 
@@ -195,61 +198,62 @@ def detect_complex_shape_type(shape):
     """检测复杂形状类型"""
     try:
         shape_info = {
-            'type': 'simple',
-            'has_fill': False,
-            'has_line': False,
-            'has_shadow': False,
-            'is_group': False,
-            'is_custom': False,
-            'shape_type': shape.shape_type
+            "type": "simple",
+            "has_fill": False,
+            "has_line": False,
+            "has_shadow": False,
+            "is_group": False,
+            "is_custom": False,
+            "shape_type": shape.shape_type,
         }
 
         # 检查是否为组合形状
         try:
-            if hasattr(shape, 'shapes') and shape.shapes:
-                shape_info['type'] = 'group'
-                shape_info['is_group'] = True
+            if hasattr(shape, "shapes") and shape.shapes:
+                shape_info["type"] = "group"
+                shape_info["is_group"] = True
                 return shape_info
         except:
             pass
 
         # 检查填充属性
         try:
-            if hasattr(shape, 'fill'):
+            if hasattr(shape, "fill"):
                 fill = shape.fill
-                if hasattr(fill, 'type') and fill.type is not None:
-                    shape_info['has_fill'] = True
+                if hasattr(fill, "type") and fill.type is not None:
+                    shape_info["has_fill"] = True
                     if fill.type != 0:  # 不是无填充
-                        shape_info['type'] = 'complex'
+                        shape_info["type"] = "complex"
         except:
             pass
 
         # 检查线条属性
         try:
-            if hasattr(shape, 'line'):
+            if hasattr(shape, "line"):
                 line = shape.line
-                if hasattr(line, 'color') and line.color is not None:
-                    shape_info['has_line'] = True
-                    shape_info['type'] = 'complex'
+                if hasattr(line, "color") and line.color is not None:
+                    shape_info["has_line"] = True
+                    shape_info["type"] = "complex"
         except:
             pass
 
         # 检查阴影效果
         try:
-            if hasattr(shape, 'shadow'):
+            if hasattr(shape, "shadow"):
                 shadow = shape.shadow
-                if hasattr(shadow, 'visible') and shadow.visible:
-                    shape_info['has_shadow'] = True
-                    shape_info['type'] = 'complex'
+                if hasattr(shadow, "visible") and shadow.visible:
+                    shape_info["has_shadow"] = True
+                    shape_info["type"] = "complex"
         except:
             pass
 
         # 检查是否为自定义形状
         try:
             from pptx.enum.shapes import MSO_SHAPE_TYPE
+
             if shape.shape_type == MSO_SHAPE_TYPE.AUTO_SHAPE:
-                shape_info['is_custom'] = True
-                shape_info['type'] = 'custom'
+                shape_info["is_custom"] = True
+                shape_info["type"] = "custom"
         except:
             pass
 
@@ -257,164 +261,153 @@ def detect_complex_shape_type(shape):
 
     except Exception as e:
         logging.debug(f"检测形状类型失败: {e}")
-        return {'type': 'unknown', 'error': str(e)}
+        return {"type": "unknown", "error": str(e)}
 
 
 def save_complex_shape_properties(shape):
     """保存复杂形状的完整属性（增强版，更全面的保存）"""
     try:
         properties = {
-            'basic_geometry': {
-                'width': shape.width,
-                'height': shape.height,
-                'left': shape.left,
-                'top': shape.top,
-                'rotation': getattr(shape, 'rotation', 0)
+            "basic_geometry": {
+                "width": shape.width,
+                "height": shape.height,
+                "left": shape.left,
+                "top": shape.top,
+                "rotation": getattr(shape, "rotation", 0),
             },
-            'shape_properties': {
-                'shape_type': shape.shape_type,
-                'name': getattr(shape, 'name', ''),
-                'shape_id': getattr(shape, 'shape_id', None)
+            "shape_properties": {
+                "shape_type": shape.shape_type,
+                "name": getattr(shape, "name", ""),
+                "shape_id": getattr(shape, "shape_id", None),
             },
-            'fill_properties': {},
-            'line_properties': {},
-            'shadow_properties': {},
-            'text_frame_properties': {},
-            'advanced_properties': {}
+            "fill_properties": {},
+            "line_properties": {},
+            "shadow_properties": {},
+            "text_frame_properties": {},
+            "advanced_properties": {},
         }
 
         # 保存填充属性（增强版）
         try:
-            if hasattr(shape, 'fill'):
+            if hasattr(shape, "fill"):
                 fill = shape.fill
-                properties['fill_properties'] = {
-                    'type': getattr(fill, 'type', None),
-                    'transparency': getattr(fill, 'transparency', None),
-                    'fore_color_rgb': None,
-                    'back_color_rgb': None
+                properties["fill_properties"] = {
+                    "type": getattr(fill, "type", None),
+                    "transparency": getattr(fill, "transparency", None),
+                    "fore_color_rgb": None,
+                    "back_color_rgb": None,
                 }
 
                 # 保存颜色信息
                 try:
-                    if hasattr(fill, 'fore_color') and hasattr(fill.fore_color, 'rgb'):
-                        properties['fill_properties']['fore_color_rgb'] = fill.fore_color.rgb
+                    if hasattr(fill, "fore_color") and hasattr(fill.fore_color, "rgb"):
+                        properties["fill_properties"]["fore_color_rgb"] = fill.fore_color.rgb
                 except:
                     pass
 
                 try:
-                    if hasattr(fill, 'back_color') and hasattr(fill.back_color, 'rgb'):
-                        properties['fill_properties']['back_color_rgb'] = fill.back_color.rgb
+                    if hasattr(fill, "back_color") and hasattr(fill.back_color, "rgb"):
+                        properties["fill_properties"]["back_color_rgb"] = fill.back_color.rgb
                 except:
                     pass
         except Exception as e:
-            properties['fill_properties']['error'] = str(e)
+            properties["fill_properties"]["error"] = str(e)
 
         # 保存线条属性（完整版，修复边框颜色问题）
         try:
-            if hasattr(shape, 'line'):
+            if hasattr(shape, "line"):
                 line = shape.line
-                properties['line_properties'] = {
-                    'width': getattr(line, 'width', None),
-                    'dash_style': getattr(line, 'dash_style', None),
-                    'fill_type': None,
-                    'transparency': None,
-                    'color_info': None
+                properties["line_properties"] = {
+                    "width": getattr(line, "width", None),
+                    "dash_style": getattr(line, "dash_style", None),
+                    "fill_type": None,
+                    "transparency": None,
+                    "color_info": None,
                 }
 
                 # 保存线条填充类型（决定是否有边框）
                 try:
-                    if hasattr(line, 'fill'):
-                        properties['line_properties']['fill_type'] = getattr(line.fill, 'type', None)
-                        properties['line_properties']['transparency'] = getattr(line.fill, 'transparency', None)
+                    if hasattr(line, "fill"):
+                        properties["line_properties"]["fill_type"] = getattr(line.fill, "type", None)
+                        properties["line_properties"]["transparency"] = getattr(line.fill, "transparency", None)
                 except:
                     pass
 
                 # 保存线条颜色（完整版）
                 try:
-                    if hasattr(line, 'color'):
+                    if hasattr(line, "color"):
                         color = line.color
                         color_info = {}
 
                         # 检查颜色类型
                         try:
                             from pptx.enum.dml import MSO_COLOR_TYPE
-                            color_type = getattr(color, 'type', None)
+
+                            color_type = getattr(color, "type", None)
 
                             if color_type == MSO_COLOR_TYPE.RGB:
-                                color_info = {
-                                    'color_type': 'rgb',
-                                    'rgb_value': getattr(color, 'rgb', None)
-                                }
+                                color_info = {"color_type": "rgb", "rgb_value": getattr(color, "rgb", None)}
                             elif color_type == MSO_COLOR_TYPE.THEME:
-                                color_info = {
-                                    'color_type': 'theme',
-                                    'theme_color': getattr(color, 'theme_color', None)
-                                }
+                                color_info = {"color_type": "theme", "theme_color": getattr(color, "theme_color", None)}
                             elif color_type == MSO_COLOR_TYPE.AUTO:
-                                color_info = {'color_type': 'auto'}
+                                color_info = {"color_type": "auto"}
                             else:
                                 # 尝试获取RGB作为后备
-                                color_info = {
-                                    'color_type': 'rgb',
-                                    'rgb_value': getattr(color, 'rgb', None)
-                                }
+                                color_info = {"color_type": "rgb", "rgb_value": getattr(color, "rgb", None)}
                         except:
                             # 如果无法获取类型，直接尝试RGB
                             try:
-                                color_info = {
-                                    'color_type': 'rgb',
-                                    'rgb_value': getattr(color, 'rgb', None)
-                                }
+                                color_info = {"color_type": "rgb", "rgb_value": getattr(color, "rgb", None)}
                             except:
-                                color_info = {'color_type': 'error'}
+                                color_info = {"color_type": "error"}
 
-                        properties['line_properties']['color_info'] = color_info
+                        properties["line_properties"]["color_info"] = color_info
 
                 except Exception as e:
-                    properties['line_properties']['color_info'] = {'color_type': 'error', 'error': str(e)}
+                    properties["line_properties"]["color_info"] = {"color_type": "error", "error": str(e)}
         except Exception as e:
-            properties['line_properties']['error'] = str(e)
+            properties["line_properties"]["error"] = str(e)
 
         # 保存阴影属性
         try:
-            if hasattr(shape, 'shadow'):
+            if hasattr(shape, "shadow"):
                 shadow = shape.shadow
-                properties['shadow_properties'] = {
-                    'visible': getattr(shadow, 'visible', None),
-                    'style': getattr(shadow, 'style', None),
-                    'blur_radius': getattr(shadow, 'blur_radius', None),
-                    'distance': getattr(shadow, 'distance', None),
-                    'direction': getattr(shadow, 'direction', None)
+                properties["shadow_properties"] = {
+                    "visible": getattr(shadow, "visible", None),
+                    "style": getattr(shadow, "style", None),
+                    "blur_radius": getattr(shadow, "blur_radius", None),
+                    "distance": getattr(shadow, "distance", None),
+                    "direction": getattr(shadow, "direction", None),
                 }
         except Exception as e:
-            properties['shadow_properties']['error'] = str(e)
+            properties["shadow_properties"]["error"] = str(e)
 
         # 保存文本框属性（增强版）
         try:
-            if hasattr(shape, 'text_frame'):
+            if hasattr(shape, "text_frame"):
                 text_frame = shape.text_frame
-                properties['text_frame_properties'] = {
-                    'auto_size': getattr(text_frame, 'auto_size', None),
-                    'word_wrap': getattr(text_frame, 'word_wrap', None),
-                    'margin_left': getattr(text_frame, 'margin_left', None),
-                    'margin_right': getattr(text_frame, 'margin_right', None),
-                    'margin_top': getattr(text_frame, 'margin_top', None),
-                    'margin_bottom': getattr(text_frame, 'margin_bottom', None),
-                    'vertical_anchor': getattr(text_frame, 'vertical_anchor', None)
+                properties["text_frame_properties"] = {
+                    "auto_size": getattr(text_frame, "auto_size", None),
+                    "word_wrap": getattr(text_frame, "word_wrap", None),
+                    "margin_left": getattr(text_frame, "margin_left", None),
+                    "margin_right": getattr(text_frame, "margin_right", None),
+                    "margin_top": getattr(text_frame, "margin_top", None),
+                    "margin_bottom": getattr(text_frame, "margin_bottom", None),
+                    "vertical_anchor": getattr(text_frame, "vertical_anchor", None),
                 }
         except Exception as e:
-            properties['text_frame_properties']['error'] = str(e)
+            properties["text_frame_properties"]["error"] = str(e)
 
         # 保存高级属性
         try:
-            properties['advanced_properties'] = {
-                'has_text_frame': getattr(shape, 'has_text_frame', False),
-                'has_table': getattr(shape, 'has_table', False),
-                'has_chart': getattr(shape, 'has_chart', False),
-                'auto_shape_type': getattr(shape, 'auto_shape_type', None)
+            properties["advanced_properties"] = {
+                "has_text_frame": getattr(shape, "has_text_frame", False),
+                "has_table": getattr(shape, "has_table", False),
+                "has_chart": getattr(shape, "has_chart", False),
+                "auto_shape_type": getattr(shape, "auto_shape_type", None),
             }
         except Exception as e:
-            properties['advanced_properties']['error'] = str(e)
+            properties["advanced_properties"]["error"] = str(e)
 
         return properties
 
@@ -434,30 +427,30 @@ def restore_complex_shape_properties(shape, properties):
 
         # 恢复基本几何属性
         try:
-            basic = properties.get('basic_geometry', {})
+            basic = properties.get("basic_geometry", {})
             if basic:
                 total_operations += 4
 
-                if 'width' in basic:
-                    shape.width = basic['width']
+                if "width" in basic:
+                    shape.width = basic["width"]
                     success_operations += 1
 
-                if 'height' in basic:
-                    shape.height = basic['height']
+                if "height" in basic:
+                    shape.height = basic["height"]
                     success_operations += 1
 
-                if 'left' in basic:
-                    shape.left = basic['left']
+                if "left" in basic:
+                    shape.left = basic["left"]
                     success_operations += 1
 
-                if 'top' in basic:
-                    shape.top = basic['top']
+                if "top" in basic:
+                    shape.top = basic["top"]
                     success_operations += 1
 
                 # 旋转属性需要特殊处理
-                if 'rotation' in basic:
+                if "rotation" in basic:
                     try:
-                        shape.rotation = basic['rotation']
+                        shape.rotation = basic["rotation"]
                     except:
                         pass
         except Exception as e:
@@ -465,21 +458,21 @@ def restore_complex_shape_properties(shape, properties):
 
         # 恢复填充属性
         try:
-            fill_props = properties.get('fill_properties', {})
-            if fill_props and hasattr(shape, 'fill') and 'error' not in fill_props:
+            fill_props = properties.get("fill_properties", {})
+            if fill_props and hasattr(shape, "fill") and "error" not in fill_props:
                 fill = shape.fill
                 total_operations += 1
 
-                if 'type' in fill_props and fill_props['type'] is not None:
+                if "type" in fill_props and fill_props["type"] is not None:
                     try:
-                        fill.type = fill_props['type']
+                        fill.type = fill_props["type"]
                         success_operations += 1
                     except:
                         pass
 
-                if 'transparency' in fill_props and fill_props['transparency'] is not None:
+                if "transparency" in fill_props and fill_props["transparency"] is not None:
                     try:
-                        fill.transparency = fill_props['transparency']
+                        fill.transparency = fill_props["transparency"]
                     except:
                         pass
         except Exception as e:
@@ -487,77 +480,78 @@ def restore_complex_shape_properties(shape, properties):
 
         # 恢复线条属性（完整版，修复边框颜色问题）
         try:
-            line_props = properties.get('line_properties', {})
-            if line_props and hasattr(shape, 'line') and 'error' not in line_props:
+            line_props = properties.get("line_properties", {})
+            if line_props and hasattr(shape, "line") and "error" not in line_props:
                 line = shape.line
                 total_operations += 1
 
                 # 恢复线条宽度
-                if 'width' in line_props and line_props['width'] is not None:
+                if "width" in line_props and line_props["width"] is not None:
                     try:
-                        line.width = line_props['width']
+                        line.width = line_props["width"]
                         success_operations += 1
                         logging.debug(f"恢复线条宽度: {line_props['width']}")
                     except Exception as e:
                         logging.debug(f"恢复线条宽度失败: {e}")
 
                 # 恢复线条样式
-                if 'dash_style' in line_props and line_props['dash_style'] is not None:
+                if "dash_style" in line_props and line_props["dash_style"] is not None:
                     try:
-                        line.dash_style = line_props['dash_style']
+                        line.dash_style = line_props["dash_style"]
                         logging.debug(f"恢复线条样式: {line_props['dash_style']}")
                     except Exception as e:
                         logging.debug(f"恢复线条样式失败: {e}")
 
                 # 恢复线条填充类型（决定是否有边框）
-                if 'fill_type' in line_props and line_props['fill_type'] is not None:
+                if "fill_type" in line_props and line_props["fill_type"] is not None:
                     try:
-                        if hasattr(line, 'fill'):
-                            line.fill.type = line_props['fill_type']
+                        if hasattr(line, "fill"):
+                            line.fill.type = line_props["fill_type"]
                             logging.debug(f"恢复线条填充类型: {line_props['fill_type']}")
                     except Exception as e:
                         logging.debug(f"恢复线条填充类型失败: {e}")
 
                 # 恢复线条透明度
-                if 'transparency' in line_props and line_props['transparency'] is not None:
+                if "transparency" in line_props and line_props["transparency"] is not None:
                     try:
-                        if hasattr(line, 'fill'):
-                            line.fill.transparency = line_props['transparency']
+                        if hasattr(line, "fill"):
+                            line.fill.transparency = line_props["transparency"]
                             logging.debug(f"恢复线条透明度: {line_props['transparency']}")
                     except Exception as e:
                         logging.debug(f"恢复线条透明度失败: {e}")
 
                 # 恢复线条颜色（完整版）
-                color_info = line_props.get('color_info')
-                if color_info and color_info.get('color_type') != 'error':
+                color_info = line_props.get("color_info")
+                if color_info and color_info.get("color_type") != "error":
                     try:
                         color = line.color
-                        color_type = color_info.get('color_type')
+                        color_type = color_info.get("color_type")
 
-                        if color_type == 'rgb' and 'rgb_value' in color_info:
-                            rgb_value = color_info['rgb_value']
+                        if color_type == "rgb" and "rgb_value" in color_info:
+                            rgb_value = color_info["rgb_value"]
                             if rgb_value is not None:
                                 color.rgb = rgb_value
                                 success_operations += 1
                                 logging.debug(f"恢复线条RGB颜色: {rgb_value}")
 
-                        elif color_type == 'theme' and 'theme_color' in color_info:
-                            theme_color = color_info['theme_color']
+                        elif color_type == "theme" and "theme_color" in color_info:
+                            theme_color = color_info["theme_color"]
                             if theme_color is not None:
                                 color.theme_color = theme_color
                                 success_operations += 1
                                 logging.debug(f"恢复线条主题颜色: {theme_color}")
 
-                        elif color_type == 'auto':
+                        elif color_type == "auto":
                             from pptx.enum.dml import MSO_COLOR_TYPE
+
                             color.type = MSO_COLOR_TYPE.AUTO
                             success_operations += 1
                             logging.debug("恢复线条自动颜色")
 
                         else:
                             # 尝试RGB作为后备
-                            if 'rgb_value' in color_info and color_info['rgb_value'] is not None:
-                                color.rgb = color_info['rgb_value']
+                            if "rgb_value" in color_info and color_info["rgb_value"] is not None:
+                                color.rgb = color_info["rgb_value"]
                                 success_operations += 1
                                 logging.debug(f"使用RGB后备恢复线条颜色: {color_info['rgb_value']}")
 
@@ -569,13 +563,13 @@ def restore_complex_shape_properties(shape, properties):
 
         # 恢复文本框属性
         try:
-            tf_props = properties.get('text_frame_properties', {})
-            if tf_props and hasattr(shape, 'text_frame') and 'error' not in tf_props:
+            tf_props = properties.get("text_frame_properties", {})
+            if tf_props and hasattr(shape, "text_frame") and "error" not in tf_props:
                 text_frame = shape.text_frame
                 total_operations += 1
 
                 # 恢复边距
-                for margin in ['margin_left', 'margin_right', 'margin_top', 'margin_bottom']:
+                for margin in ["margin_left", "margin_right", "margin_top", "margin_bottom"]:
                     if margin in tf_props and tf_props[margin] is not None:
                         try:
                             setattr(text_frame, margin, tf_props[margin])
@@ -583,7 +577,7 @@ def restore_complex_shape_properties(shape, properties):
                             pass
 
                 # 恢复其他属性
-                for prop in ['word_wrap', 'vertical_anchor']:
+                for prop in ["word_wrap", "vertical_anchor"]:
                     if prop in tf_props and tf_props[prop] is not None:
                         try:
                             setattr(text_frame, prop, tf_props[prop])
@@ -611,7 +605,7 @@ def has_shape_deformed(shape, original_properties):
         if not original_properties:
             return False
 
-        basic = original_properties.get('basic_geometry', {})
+        basic = original_properties.get("basic_geometry", {})
         if not basic:
             return False
 
@@ -619,29 +613,29 @@ def has_shape_deformed(shape, original_properties):
         tolerance = 0.5  # 0.5个单位的容差，更敏感地检测变形
 
         # 检查宽度变化
-        if 'width' in basic:
-            width_diff = abs(shape.width - basic['width'])
+        if "width" in basic:
+            width_diff = abs(shape.width - basic["width"])
             if width_diff > tolerance:
                 logging.warning(f"检测到宽度变化: {width_diff:.2f} > {tolerance}")
                 return True
 
         # 检查高度变化
-        if 'height' in basic:
-            height_diff = abs(shape.height - basic['height'])
+        if "height" in basic:
+            height_diff = abs(shape.height - basic["height"])
             if height_diff > tolerance:
                 logging.warning(f"检测到高度变化: {height_diff:.2f} > {tolerance}")
                 return True
 
         # 检查左边距变化
-        if 'left' in basic:
-            left_diff = abs(shape.left - basic['left'])
+        if "left" in basic:
+            left_diff = abs(shape.left - basic["left"])
             if left_diff > tolerance:
                 logging.warning(f"检测到左边距变化: {left_diff:.2f} > {tolerance}")
                 return True
 
         # 检查上边距变化
-        if 'top' in basic:
-            top_diff = abs(shape.top - basic['top'])
+        if "top" in basic:
+            top_diff = abs(shape.top - basic["top"])
             if top_diff > tolerance:
                 logging.warning(f"检测到上边距变化: {top_diff:.2f} > {tolerance}")
                 return True
@@ -664,12 +658,12 @@ def safe_set_autofit_with_size_preservation(text_frame, shape):
         original_properties = save_complex_shape_properties(shape)
 
         # 3. 根据形状类型选择策略
-        if shape_info['type'] == 'group':
+        if shape_info["type"] == "group":
             # 组合形状：不设置自适应，避免破坏组合结构
             logging.info("跳过组合形状的自适应设置")
             return True
 
-        elif shape_info['type'] == 'complex':
+        elif shape_info["type"] == "complex":
             # 复杂形状：谨慎设置自适应
             logging.debug("为复杂形状设置自适应")
 
@@ -714,8 +708,15 @@ def safe_set_autofit_with_size_preservation(text_frame, shape):
         return False
 
 
-def process_presentation_add_annotations(path_to_presentation, annotations, stop_words_list, custom_translations,
-                                         source_language, target_language, bilingual_translation):
+def process_presentation_add_annotations(
+    path_to_presentation,
+    annotations,
+    stop_words_list,
+    custom_translations,
+    source_language,
+    target_language,
+    bilingual_translation,
+):
     prs = Presentation(path_to_presentation)
     all_text = ""
     for slide in prs.slides:
@@ -760,9 +761,9 @@ def process_presentation_add_annotations(path_to_presentation, annotations, stop
         # 添加文本框
         shape = slide.shapes.add_textbox(left, top, width, height)
         text_frame = shape.text_frame
-        original_text = re.sub(r'_x000B_|\u000B', '', original_text)
-        translated_text=data[new_text]
-        translated_text = re.sub(r'_x000B_|\u000B', '', translated_text)
+        original_text = re.sub(r"_x000B_|\u000B", "", original_text)
+        translated_text = data[new_text]
+        translated_text = re.sub(r"_x000B_|\u000B", "", translated_text)
         if str(bilingual_translation) == "1":
             text_frame.text = original_text + "\n" + translated_text
         else:
@@ -778,18 +779,29 @@ def process_presentation_add_annotations(path_to_presentation, annotations, stop
 
 
 def is_valid_reference(text):
-    pattern = r'\d+\s*[A-Za-z&\s\.\-]+,\s*\d{4}'
+    pattern = r"\d+\s*[A-Za-z&\s\.\-]+,\s*\d{4}"
     return bool(re.match(pattern, text))
+
+
 def is_page_number(text):
     text = text.strip()
 
     # 常见纯数字页码
-    if re.fullmatch(r'\d{1,3}', text):
+    if re.fullmatch(r"\d{1,3}", text):
         return True
     return False
 
-def process_presentation(path_to_presentation, stop_words_list, custom_translations, select_page, source_language,
-                         target_language, bilingual_translation, enable_uno_conversion=True):
+
+def process_presentation(
+    path_to_presentation,
+    stop_words_list,
+    custom_translations,
+    select_page,
+    source_language,
+    target_language,
+    bilingual_translation,
+    enable_uno_conversion=True,
+):
     logging.info(f"开始处理演示文稿: {os.path.basename(path_to_presentation)}")
     logging.info(f"源语言: {source_language}, 目标语言: {target_language}, 双语翻译: {bilingual_translation}")
     logging.info(f"选中页面: {select_page}")
@@ -867,7 +879,7 @@ def process_presentation(path_to_presentation, stop_words_list, custom_translati
                                 for run in paragraph.runs:
                                     # 获取单元格的文本
                                     text = run.text.strip()
-                                    slide_text += "【"+text+"】" + "\n"
+                                    slide_text += "【" + text + "】" + "\n"
 
             logging.info(f"第 {current_slide_index} 张幻灯片文本收集完成，共 {len(slide_text)} 个字符")
 
@@ -916,19 +928,23 @@ def process_presentation(path_to_presentation, stop_words_list, custom_translati
                             translated_text = ""
                             new_text = find_most_similar(original_text, list(data.keys()))
                             if new_text in data:
-                                clean_text1 = re.sub(r'[^\w]', '', original_text)
-                                clean_text2 = re.sub(r'[^\w]', '', data[new_text])
+                                clean_text1 = re.sub(r"[^\w]", "", original_text)
+                                clean_text2 = re.sub(r"[^\w]", "", data[new_text])
                                 if clean_text1 != clean_text2:
                                     translated_text = data[new_text]
 
                             # 应用翻译
-                            original_text=re.sub(r'_x000B_|\u000B', '', original_text)
-                            translated_text=re.sub(r'_x000B_|\u000B', '', translated_text)
+                            original_text = re.sub(r"_x000B_|\u000B", "", original_text)
+                            translated_text = re.sub(r"_x000B_|\u000B", "", translated_text)
                             if not is_page_number(original_text):
                                 if translated_text != original_text and translated_text:
                                     # 检查相似度，如果相似度过高则跳过翻译
-                                    if should_skip_translation_insertion(original_text, translated_text, threshold=0.9, debug=True):
-                                        logging.info(f"跳过高相似度翻译: '{original_text[:30]}...' -> '{translated_text[:30]}...'")
+                                    if should_skip_translation_insertion(
+                                        original_text, translated_text, threshold=0.9, debug=True
+                                    ):
+                                        logging.info(
+                                            f"跳过高相似度翻译: '{original_text[:30]}...' -> '{translated_text[:30]}...'"
+                                        )
                                         continue
 
                                     text_blocks_updated += 1
@@ -960,15 +976,19 @@ def process_presentation(path_to_presentation, stop_words_list, custom_translati
                                     # 获取单元格的文本
                                     new_text = find_most_similar(run.text, list(data.keys()))
                                     if new_text is None or new_text not in data:
-                                        clean_text2 = ''
+                                        clean_text2 = ""
                                     else:
-                                        clean_text1 = re.sub(r'[^\w]', '', run.text)
-                                        clean_text2 = re.sub(r'[^\w]', '', data[new_text])
+                                        clean_text1 = re.sub(r"[^\w]", "", run.text)
+                                        clean_text2 = re.sub(r"[^\w]", "", data[new_text])
 
                                         if clean_text1 != clean_text2:
                                             # 检查相似度，如果相似度过高则跳过翻译
-                                            if should_skip_translation_insertion(run.text, data[new_text], threshold=0.9, debug=True):
-                                                logging.info(f"跳过表格高相似度翻译: '{run.text[:30]}...' -> '{data[new_text][:30]}...'")
+                                            if should_skip_translation_insertion(
+                                                run.text, data[new_text], threshold=0.9, debug=True
+                                            ):
+                                                logging.info(
+                                                    f"跳过表格高相似度翻译: '{run.text[:30]}...' -> '{data[new_text][:30]}...'"
+                                                )
                                                 continue
 
                                             cells_updated += 1
@@ -988,8 +1008,10 @@ def process_presentation(path_to_presentation, stop_words_list, custom_translati
     except Exception as e:
         logging.error(f"处理演示文稿时出错: {str(e)}")
         import traceback
+
         logging.error(traceback.format_exc())
         return False
+
 
 def has_meaningful_text_content(text_frame):
     """
@@ -1002,7 +1024,7 @@ def has_meaningful_text_content(text_frame):
         bool: True表示包含有意义的文字，False表示只有形状或空白
     """
     try:
-        if not text_frame or not hasattr(text_frame, 'paragraphs'):
+        if not text_frame or not hasattr(text_frame, "paragraphs"):
             return False
 
         # 检查所有段落
@@ -1020,15 +1042,15 @@ def has_meaningful_text_content(text_frame):
             return False
 
         # 检查是否只是空白字符、换行符等
-        if re.match(r'^[\s\n\r\t]*$', total_text):
+        if re.match(r"^[\s\n\r\t]*$", total_text):
             return False
 
         # 检查是否只是纯数字（页码等）
-        if re.match(r'^[\d\s\.,\-%]+$', total_text):
+        if re.match(r"^[\d\s\.,\-%]+$", total_text):
             return False
 
         # 检查是否只是纯标点符号
-        if re.match(r'^[^\w\s]+$', total_text):
+        if re.match(r"^[^\w\s]+$", total_text):
             return False
 
         # 检查是否只是单个字符
@@ -1036,7 +1058,7 @@ def has_meaningful_text_content(text_frame):
             return False
 
         # 检查是否只是特殊字符
-        if re.match(r'^[\s\-_=+\*#@$%^&()]+$', total_text):
+        if re.match(r"^[\s\-_=+\*#@$%^&()]+$", total_text):
             return False
 
         # 如果通过了所有检查，认为包含有意义的文字
@@ -1088,7 +1110,7 @@ def get_textbox_content_summary(text_frame):
         str: 内容摘要
     """
     try:
-        if not text_frame or not hasattr(text_frame, 'paragraphs'):
+        if not text_frame or not hasattr(text_frame, "paragraphs"):
             return "无文本框"
 
         total_text = ""
@@ -1130,9 +1152,9 @@ def safe_set_autofit_with_content_check(text_frame, shape, debug=False):
                 logging.info(f"跳过文本框调整: {content_summary}")
 
             return {
-                'adjusted': False,
-                'reason': 'no_meaningful_content',
-                'content': get_textbox_content_summary(text_frame)
+                "adjusted": False,
+                "reason": "no_meaningful_content",
+                "content": get_textbox_content_summary(text_frame),
             }
 
         # 包含有意义的文字，进行调整
@@ -1144,22 +1166,17 @@ def safe_set_autofit_with_content_check(text_frame, shape, debug=False):
         success = safe_set_autofit_with_size_preservation(text_frame, shape)
 
         return {
-            'adjusted': True,
-            'success': success,
-            'reason': 'has_meaningful_content',
-            'content': get_textbox_content_summary(text_frame)
+            "adjusted": True,
+            "success": success,
+            "reason": "has_meaningful_content",
+            "content": get_textbox_content_summary(text_frame),
         }
 
     except Exception as e:
         if debug:
             logging.error(f"文本框调整出错: {e}")
 
-        return {
-            'adjusted': False,
-            'success': False,
-            'reason': 'error',
-            'error': str(e)
-        }
+        return {"adjusted": False, "success": False, "reason": "error", "error": str(e)}
 
 
 # start_time = time.time()
