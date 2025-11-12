@@ -2,6 +2,7 @@
 PPT文本框自适应大小调整模块
 支持多种方法和跨平台兼容性，优先使用LibreOffice触发渲染
 """
+
 import os
 import logging
 import platform
@@ -13,6 +14,7 @@ try:
     from pptx import Presentation
     from pptx.enum.text import MSO_AUTO_SIZE, PP_ALIGN
     from pptx.util import Inches, Pt, Cm
+
     PPTX_AVAILABLE = True
 except ImportError:
     PPTX_AVAILABLE = False
@@ -21,20 +23,28 @@ except ImportError:
 try:
     import win32com.client
     import pythoncom
+
     COM_AVAILABLE = True
 except ImportError:
     COM_AVAILABLE = False
     logging.warning("win32com不可用，将使用python-pptx作为替代方案")
 
 # 配置日志
-logger = logging.getLogger(__name__)
+try:
+    from .pynuo_fuc.logger_config import get_logger
+
+    logger = get_logger("adjust_text_size")
+except ImportError:
+    # 如果无法导入项目日志配置，使用标准日志
+    logger = logging.getLogger(__name__)
+    # 不添加控制台处理器，让主应用的日志配置处理控制台输出
 
 
 def set_file_permissions(file_path):
     """设置文件权限（仅Windows）"""
     if platform.system() != "Windows":
         return {"status": "success", "message": "非Windows系统，跳过权限设置"}
-    
+
     if not os.path.exists(file_path):
         return {"status": "error", "message": f"文件 {file_path} 不存在。"}
 
@@ -51,14 +61,14 @@ def set_textbox_autofit_pptx(ppt_path: str) -> bool:
     if not PPTX_AVAILABLE:
         logging.error("python-pptx库不可用")
         return False
-    
+
     try:
         prs = Presentation(ppt_path)
         processed_count = 0
-        
+
         logging.info(f"开始处理PPT文件: {os.path.basename(ppt_path)}")
         logging.info(f"总共 {len(prs.slides)} 张幻灯片")
-        
+
         for slide in prs.slides:
             for shape in slide.shapes:
                 if shape.has_text_frame:
@@ -74,11 +84,11 @@ def set_textbox_autofit_pptx(ppt_path: str) -> bool:
                             text_frame.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
                             text_frame.word_wrap = True
                             processed_count += 1
-        
+
         prs.save(ppt_path)
         logging.info(f"处理完成: {len(prs.slides)} 张幻灯片, {processed_count}/{processed_count} 个文本框")
         return True
-        
+
     except Exception as e:
         logging.error(f"python-pptx处理失败: {e}")
         return False
@@ -95,6 +105,7 @@ try:
     from win32com.client import constants
 except Exception:
     pass  # 维持你原来的 COM_AVAILABLE 逻辑
+
 
 def _iter_shapes(shape_or_shapes):
     """递归遍历所有 shape（包含组合里的成员）"""
@@ -121,6 +132,7 @@ def _iter_shapes(shape_or_shapes):
         except Exception:
             yield sh
 
+
 def _is_textual_shape(shape) -> bool:
     """严格判断是否是值得处理的文本形状"""
     try:
@@ -138,6 +150,7 @@ def _is_textual_shape(shape) -> bool:
         return True
     except Exception:
         return False
+
 
 def set_textbox_autofit_com(ppt_path: str) -> bool:
     """使用COM接口设置文本框自适应（Windows专用，包含轻微扰动触发渲染）"""
@@ -221,9 +234,7 @@ def set_textbox_autofit_com(ppt_path: str) -> bool:
                     logging.debug(f"处理形状时出错: {e}")
                     skipped_count += 1
 
-        logging.info(
-            f"COM处理完成: {slide_count} 张幻灯片, 处理 {handled_count} 个文本框, 跳过 {skipped_count} 个"
-        )
+        logging.info(f"COM处理完成: {slide_count} 张幻灯片, 处理 {handled_count} 个文本框, 跳过 {skipped_count} 个")
 
         # 保存并关闭
         presentation.Save()
@@ -295,6 +306,7 @@ def set_textbox_autofit(ppt_path):
     # 方法1: 使用带颜色保护的LibreOffice渲染（推荐）
     try:
         from .color_backup_restore import render_with_color_protection
+
         logging.info("使用带颜色保护的LibreOffice渲染")
         result = render_with_color_protection(ppt_path)
         if result:
@@ -310,6 +322,7 @@ def set_textbox_autofit(ppt_path):
     # 方法2: 基础LibreOffice渲染（降级方案）
     try:
         from .libreoffice_autofit import libreoffice_ppt_autofit
+
         logging.info("使用基础LibreOffice PDF转换触发渲染")
         result = libreoffice_ppt_autofit(ppt_path)
         if result:
@@ -322,7 +335,7 @@ def set_textbox_autofit(ppt_path):
         logging.warning("LibreOffice渲染触发器不可用，尝试其他方法")
     except Exception as e:
         logging.warning(f"基础LibreOffice渲染触发出错: {e}，尝试其他方法")
-    
+
     # 方法2: Windows环境 - 使用COM接口（包含扰动触发渲染）
     if platform.system() == "Windows" and COM_AVAILABLE:
         logging.info("Windows环境: 使用COM接口方法（模拟PPT客户端扰动）")
@@ -332,10 +345,11 @@ def set_textbox_autofit(ppt_path):
             return True
         else:
             logging.warning("COM接口方法处理失败，尝试其他方法")
-    
+
     # 方法3: 跨平台纯python-pptx方法（备用方案）
     try:
         from .pure_pptx_autofit import pure_pptx_set_textbox_autofit
+
         logging.info("使用纯python-pptx自适应方法处理")
         result = pure_pptx_set_textbox_autofit(ppt_path)
         if result:
@@ -347,7 +361,7 @@ def set_textbox_autofit(ppt_path):
         logging.warning("纯python-pptx方法不可用，尝试其他方法")
     except Exception as e:
         logging.warning(f"纯python-pptx方法出错: {e}，尝试其他方法")
-    
+
     # 方法4: 标准python-pptx方法（最后的保障）
     if PPTX_AVAILABLE:
         logging.info("使用标准python-pptx方法处理")
@@ -357,7 +371,7 @@ def set_textbox_autofit(ppt_path):
             return True
         else:
             logging.warning("标准python-pptx方法处理失败")
-    
+
     logging.error("所有方法都失败了")
     return False
 

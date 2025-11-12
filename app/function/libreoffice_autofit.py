@@ -2,16 +2,19 @@
 使用LibreOffice命令行触发PPT文本框自适应渲染
 通过转换PPT为PDF的过程触发完整渲染，使文本框自适应设置真正生效
 """
+
 import os
 import logging
 import shutil
 import subprocess
 import tempfile
 import platform
+
 try:
     from pptx import Presentation
     from pptx.enum.text import MSO_AUTO_SIZE
     from pptx.util import Pt
+
     PPTX_AVAILABLE = True
 except ImportError:
     PPTX_AVAILABLE = False
@@ -31,7 +34,7 @@ def find_libreoffice_command():
             "soffice",
             "/usr/bin/libreoffice",
             "/opt/libreoffice/program/soffice",
-            "/Applications/LibreOffice.app/Contents/MacOS/soffice"
+            "/Applications/LibreOffice.app/Contents/MacOS/soffice",
         ]
         for cmd_path in possible_paths:
             if os.path.exists(cmd_path):
@@ -45,27 +48,25 @@ def set_ppt_autofit_properties(ppt_path: str) -> bool:
     if not PPTX_AVAILABLE:
         logger.error("python-pptx库不可用")
         return False
-    
+
     try:
         prs = Presentation(ppt_path)
         processed_count = 0
-        
+
         logger.info(f"设置文本框自适应属性: {os.path.basename(ppt_path)}")
-        
+
         for slide in prs.slides:
             for shape in slide.shapes:
                 if shape.has_text_frame:
                     text_frame = shape.text_frame
-                    
+
                     # 检查是否有实际内容
-                    has_content = any(
-                        paragraph.text.strip() 
-                        for paragraph in text_frame.paragraphs
-                    )
-                    
+                    has_content = any(paragraph.text.strip() for paragraph in text_frame.paragraphs)
+
                     if has_content:
                         # 使用颜色保护器保存原始格式
                         from .color_protection import save_textframe_colors
+
                         color_info = save_textframe_colors(text_frame, f"shape_{processed_count}")
 
                         # 设置文本大小适应文本框
@@ -80,25 +81,24 @@ def set_ppt_autofit_properties(ppt_path: str) -> bool:
 
                         # 使用颜色保护器恢复原始格式
                         from .color_protection import restore_textframe_colors
+
                         restore_textframe_colors(text_frame, color_info)
-                        
+
                         processed_count += 1
-                
+
                 elif shape.has_table:
                     # 处理表格中的文本框
                     table = shape.table
                     for row in table.rows:
                         for cell in row.cells:
                             text_frame = cell.text_frame
-                            
-                            has_content = any(
-                                paragraph.text.strip() 
-                                for paragraph in text_frame.paragraphs
-                            )
-                            
+
+                            has_content = any(paragraph.text.strip() for paragraph in text_frame.paragraphs)
+
                             if has_content:
                                 # 使用颜色保护器保存表格单元格格式
                                 from .color_protection import save_textframe_colors, restore_textframe_colors
+
                                 color_info = save_textframe_colors(text_frame, f"table_cell_{processed_count}")
 
                                 # 设置自适应
@@ -109,12 +109,12 @@ def set_ppt_autofit_properties(ppt_path: str) -> bool:
                                 restore_textframe_colors(text_frame, color_info)
 
                                 processed_count += 1
-        
+
         # 保存设置
         prs.save(ppt_path)
         logger.info(f"设置了 {processed_count} 个文本框的自适应属性")
         return True
-        
+
     except Exception as e:
         logger.error(f"设置自适应属性时出错: {e}")
         return False
@@ -147,7 +147,11 @@ def trigger_ppt_render_with_libreoffice(ppt_path: str) -> bool:
             logger.error("设置自适应属性失败")
             return False
 
-        # 步骤2: 使用LibreOffice渲染并重新导出PPTX
+        # 设置自适应属性成功，直接返回True
+        logger.info("文本框自适应属性设置成功")
+        return True
+
+        # 步骤2: 使用LibreOffice渲染并重新导出PPTX（已禁用）
         # logger.info("使用LibreOffice通过.odp中转转换并重新保存PPTX以触发文本框渲染...")
 
         # with tempfile.TemporaryDirectory() as temp_dir:
@@ -254,23 +258,25 @@ def trigger_ppt_render_with_libreoffice(ppt_path: str) -> bool:
     except Exception as e:
         logger.error(f"处理过程中出错: {e}")
         import traceback
+
         logger.error(f"详细错误: {traceback.format_exc()}")
         return False
+
 
 # 简化的主函数接口
 def libreoffice_ppt_autofit(ppt_path: str) -> bool:
     """
     使用LibreOffice实现PPT文本框自适应的主函数
-    
+
     这个函数会：
     1. 使用python-pptx设置文本框自适应属性
     2. 使用LibreOffice命令行转换PPT为PDF触发渲染
     3. 自动删除临时PDF文件
     4. 返回处理结果
-    
+
     Args:
         ppt_path: PPT文件路径
-        
+
     Returns:
         bool: 处理是否成功
     """
