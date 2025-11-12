@@ -297,6 +297,8 @@ def process_markdown_images_ocr_and_translate(
             
             # 复制图片到临时目录
             temp_image_paths = []
+            # 创建临时路径到原始路径的映射
+            temp_to_original_path = {}
             for i, image_path in enumerate(image_paths):
                 if os.path.exists(image_path):
                     # 生成新的文件名
@@ -307,7 +309,10 @@ def process_markdown_images_ocr_and_translate(
                     # 复制文件
                     shutil.copy2(image_path, temp_image_path)
                     temp_image_paths.append(temp_image_path)
+                    # 保存临时路径到原始路径的映射
+                    temp_to_original_path[temp_image_path] = image_path
                     logger.info(f"[Markdown OCR] 已复制图片: {os.path.basename(image_path)} -> {new_filename}")
+                    logger.info(f"[Markdown OCR] 路径映射: {temp_image_path} -> {image_path}")
                 else:
                     logger.warning(f"[Markdown OCR] 图片文件不存在: {image_path}")
             
@@ -350,25 +355,33 @@ def process_markdown_images_ocr_and_translate(
                         continue
                     
                     for image_info in slide_data['images']:
+                        # 获取临时路径
+                        temp_path = image_info.get("filepath", "")
+                        # 转换为原始路径
+                        original_path = temp_to_original_path.get(temp_path, temp_path)
+                        
                         result = {
-                            "image_path": image_info.get("filepath", ""),
+                            "image_path": original_path,  # 使用原始路径
+                            "temp_path": temp_path,  # 保留临时路径用于调试
                             "success": False,
                             "ocr_text_combined": "",
                             "translation_text_combined": ""
                         }
                         
+                        logger.info(f"[Markdown OCR] 处理图片: 临时路径={os.path.basename(temp_path)}, 原始路径={os.path.basename(original_path)}")
+                        
                         # 获取OCR文本
                         all_text = image_info.get('all_text', {})
-                        logger.info(f"[Markdown OCR] 图片 {os.path.basename(result['image_path'])} 的OCR文本: {all_text}")
+                        logger.info(f"[Markdown OCR] 图片 {os.path.basename(original_path)} 的OCR文本: {all_text}")
                         
                         if all_text:
                             # 合并所有OCR文本
                             ocr_texts = [text.strip() for text in all_text.values() if text.strip()]
                             result["ocr_text_combined"] = '\n'.join(ocr_texts)
                             result["success"] = True
-                            logger.info(f"[Markdown OCR] 图片OCR识别成功: {os.path.basename(result['image_path'])}, 文本长度: {len(result['ocr_text_combined'])}")
+                            logger.info(f"[Markdown OCR] 图片OCR识别成功: {os.path.basename(original_path)}, 文本长度: {len(result['ocr_text_combined'])}")
                         else:
-                            logger.info(f"[Markdown OCR] 图片未识别到文本: {os.path.basename(result['image_path'])}")
+                            logger.info(f"[Markdown OCR] 图片未识别到文本: {os.path.basename(original_path)}")
                         
                         # 翻译OCR文本
                         if all_text:
@@ -397,7 +410,7 @@ def process_markdown_images_ocr_and_translate(
                                 
                                 if translation_texts:
                                     result["translation_text_combined"] = '\n'.join(translation_texts)
-                                    logger.info(f"[Markdown OCR] 图片翻译成功: {os.path.basename(result['image_path'])}, 翻译文本长度: {len(result['translation_text_combined'])}")
+                                    logger.info(f"[Markdown OCR] 图片翻译成功: {os.path.basename(original_path)}, 翻译文本长度: {len(result['translation_text_combined'])}")
                                 
                             except Exception as e:
                                 logger.error(f"[Markdown OCR] 翻译图片文本时出错: {e}")
@@ -409,6 +422,7 @@ def process_markdown_images_ocr_and_translate(
                 for i, result in enumerate(results):
                     logger.info(f"[Markdown OCR] 结果 {i+1}: 成功={result['success']}, "
                               f"图片={os.path.basename(result['image_path'])}, "
+                              f"原始路径={result['image_path']}, "
                               f"OCR文本长度={len(result['ocr_text_combined'])}, "
                               f"翻译文本长度={len(result['translation_text_combined'])}")
             else:
@@ -456,7 +470,7 @@ class TextLineSplitter:
             with open(json_file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
             
-            logger.info(f"✅ 文本行分割完成！处理图片数: {self.processed_count}, 分割文本数: {self.split_count}")
+            logger.info(f"  文本行分割完成！处理图片数: {self.processed_count}, 分割文本数: {self.split_count}")
             
             return True
             
@@ -890,7 +904,7 @@ class PPTImageReplacer:
                 slide_width_inches = slide_width / 914400
                 slide_height_inches = slide_height / 914400
                 
-                logger.info(f"✅ 成功获取幻灯片尺寸: {slide_width_inches:.2f} x {slide_height_inches:.2f} 英寸")
+                logger.info(f"  成功获取幻灯片尺寸: {slide_width_inches:.2f} x {slide_height_inches:.2f} 英寸")
                 
             except Exception as size_error:
                 logger.warning(f"⚠️ 无法获取幻灯片尺寸，使用标准尺寸: {str(size_error)}")
@@ -1027,7 +1041,7 @@ class PPTImageReplacer:
             # 统计显示的文本对数量
             total_pairs = sum(len(ocr_data['text_pairs']) for ocr_data in ocr_data_list)
             translation_info = "和翻译" if show_translation else ""
-            logger.info(f"✅ 已在第{slide_number}页右侧添加OCR文本框{translation_info}")
+            logger.info(f"  已在第{slide_number}页右侧添加OCR文本框{translation_info}")
             logger.info(f"   📊 包含{len(ocr_data_list)}张图片，共{total_pairs}个文本对")
             
         except Exception as e:
@@ -1112,7 +1126,7 @@ def ocr_controller(presentation_path: str,
         if not image_mapping:
             logger.warning("未找到需要处理的图片")
             return presentation_path
-        logger.info(f"✅ 图片提取完成，临时目录: {temp_dir}")
+        logger.info(f"  图片提取完成，临时目录: {temp_dir}")
 
         # 2. 调用qwen-vl-ocr的api进行图片的文字提取
         logger.info("\n" + "=" * 50)
@@ -1136,14 +1150,14 @@ def ocr_controller(presentation_path: str,
             split_success = splitter.process_json_file(json_path)
             
             if split_success:
-                logger.info("✅ 文本行分割完成")
+                logger.info("  文本行分割完成")
             else:
                 logger.warning("⚠️ 文本行分割失败，将使用原始文本继续处理")
         else:
             logger.info("\n" + "=" * 50)
             logger.info("⏭️ 第三步：跳过文本行分割处理")
             logger.info("=" * 50)
-            logger.info("✅ 保持原始文本格式")
+            logger.info("  保持原始文本格式")
 
         # 4. 翻译OCR识别结果
         step_num = 4 if enable_text_splitting != "False" else 3
@@ -1159,7 +1173,7 @@ def ocr_controller(presentation_path: str,
             )
             
             if translation_success:
-                logger.info(f"✅ 翻译完成")
+                logger.info(f"  翻译完成")
                 
                 # 显示翻译摘要
                 mapping_file = os.path.join(temp_dir, "image_mapping.json")
@@ -1184,7 +1198,7 @@ def ocr_controller(presentation_path: str,
             raise Exception(f"映射文件不存在: {mapping_file}")
         with open(mapping_file, 'r', encoding='utf-8') as f:
             updated_mapping = json.load(f)
-        logger.info("✅ 处理结果读取完成")
+        logger.info("  处理结果读取完成")
         
         # 统计结果
         ocr_count = 0
@@ -1221,7 +1235,7 @@ def ocr_controller(presentation_path: str,
         )
         
         success_desc = "OCR结果和翻译" if enable_translation else "OCR结果"
-        logger.info(f"✅ {success_desc}已添加到PPT右侧")
+        logger.info(f"  {success_desc}已添加到PPT右侧")
         logger.info("\n" + "=" * 50)
         logger.info("🎉 处理完成！")
         logger.info("=" * 50)

@@ -94,7 +94,7 @@ class MinerUAPI:
         
         logger.info("MinerU API客户端初始化完成")
     
-    def process_pdf(self, file_path):
+    def process_pdf(self, file_path, enable_ocr=True):
         """处理本地PDF文件"""
         # 1. 上传文件
         logger.info(f"开始上传PDF文件: {file_path}")
@@ -114,7 +114,7 @@ class MinerUAPI:
         }
         data = {
             'url': pdf_url,
-            'is_ocr': True,
+            'is_ocr': enable_ocr,
             'enable_formula': True,
             'enable_table': True,
             'language': 'auto'
@@ -124,6 +124,7 @@ class MinerUAPI:
             logger.info("发送创建任务请求...")
             logger.info(f"请求头信息: Authorization: Bearer {self.token[:10]}***")
             logger.info(f"请求数据: {data}")
+            logger.info(f"OCR功能状态: {'启用' if enable_ocr else '禁用'}")
             
             # 使用官方文档中的认证方式和请求格式
             headers = {
@@ -151,14 +152,14 @@ class MinerUAPI:
 
             # 检查API响应的格式和内容
             if not isinstance(result, dict):
-                logger.error(f"❌ API响应格式错误: {result}")
+                logger.error(f" API响应格式错误: {result}")
                 return None
 
             if 'code' not in result:
-                logger.error(f"❌ API响应缺少'code'字段: {result}")
+                logger.error(f" API响应缺少'code'字段: {result}")
                 # 检查是否是认证错误的特殊情况
                 if 'msgCode' in result and result.get('msgCode') == 'A0202':
-                    logger.error("❌ 用户认证失败，请检查MINERU_API_KEY是否正确配置")
+                    logger.error(" 用户认证失败，请检查MINERU_API_KEY是否正确配置")
                     logger.error("请确认以下几点:")
                     logger.error("1. MINERU_API_KEY在.env文件中是否正确设置")
                     logger.error("2. API密钥是否已过期")
@@ -170,30 +171,30 @@ class MinerUAPI:
                 error_msg = result.get('msg', '未知错误')
                 msg_code = result.get('msgCode', '未知错误代码')
                 trace_id = result.get('traceId', '未知traceId')
-                logger.error(f"❌ 创建任务失败: {error_msg}, 错误代码: {msg_code}, Trace ID: {trace_id}")
+                logger.error(f" 创建任务失败: {error_msg}, 错误代码: {msg_code}, Trace ID: {trace_id}")
                 return None
 
             if 'data' not in result:
-                logger.error(f"❌ API响应缺少'data'字段: {result}")
+                logger.error(f" API响应缺少'data'字段: {result}")
                 return None
 
             if 'task_id' not in result['data']:
-                logger.error(f"❌ API响应缺少task_id字段: {result}")
+                logger.error(f" API响应缺少task_id字段: {result}")
                 return None
 
             task_id = result['data']['task_id']
-            logger.info(f"✅ 任务ID: {task_id}")
+            logger.info(f"  任务ID: {task_id}")
 
             # 3. 等待处理完成
-            logger.info("⏳ 等待处理...")
+            logger.info(" 等待处理...")
             return self._wait_for_task_completion(task_id, headers)
         except Exception as e:
-            logger.error(f"❌ 创建任务时出错: {e}")
+            logger.error(f" 创建任务时出错: {e}")
             import traceback
             logger.error(f"错误详情: {traceback.format_exc()}")
             return None
     
-    def process_pdf_with_url(self, pdf_url):
+    def process_pdf_with_url(self, pdf_url, enable_ocr=True):
         """通过URL处理PDF文件"""
         # 1. 验证URL
         if not pdf_url:
@@ -203,11 +204,11 @@ class MinerUAPI:
         logger.info(f"开始处理PDF URL: {pdf_url}")
         
         # 2. 创建MinerU任务
-        logger.info("📄 创建解析任务...")
+        logger.info(" 创建解析任务...")
         task_url = 'https://mineru.net/api/v4/extract/task'
         data = {
             'url': pdf_url,
-            'is_ocr': True,
+            'is_ocr': enable_ocr,
             'enable_formula': True,
             'enable_table': True,
             'language': 'auto'
@@ -217,6 +218,7 @@ class MinerUAPI:
             logger.info("发送创建任务请求...")
             logger.info(f"请求头信息: Authorization: Bearer {self.token[:10]}***")
             logger.info(f"请求数据: {data}")
+            logger.info(f"OCR功能状态: {'启用' if enable_ocr else '禁用'}")
             
             # 使用官方文档中的认证方式和请求格式
             headers = {
@@ -244,14 +246,14 @@ class MinerUAPI:
 
             # 检查API响应的格式和内容
             if not isinstance(result, dict):
-                logger.error(f"❌ API响应格式错误: {result}")
+                logger.error(f" API响应格式错误: {result}")
                 return None
 
             if 'code' not in result:
-                logger.error(f"❌ API响应缺少'code'字段: {result}")
+                logger.error(f" API响应缺少'code'字段: {result}")
                 # 检查是否是认证错误的特殊情况
                 if 'msgCode' in result and result.get('msgCode') == 'A0202':
-                    logger.error("❌ 用户认证失败，请检查MINERU_API_KEY是否正确配置")
+                    logger.error(" 用户认证失败，请检查MINERU_API_KEY是否正确配置")
                     logger.error("请确认以下几点:")
                     logger.error("1. MINERU_API_KEY在.env文件中是否正确设置")
                     logger.error("2. API密钥是否已过期")
@@ -263,25 +265,25 @@ class MinerUAPI:
                 error_msg = result.get('msg', '未知错误')
                 msg_code = result.get('msgCode', '未知错误代码')
                 trace_id = result.get('traceId', '未知traceId')
-                logger.error(f"❌ 创建任务失败: {error_msg}, 错误代码: {msg_code}, Trace ID: {trace_id}")
+                logger.error(f" 创建任务失败: {error_msg}, 错误代码: {msg_code}, Trace ID: {trace_id}")
                 return None
 
             if 'data' not in result:
-                logger.error(f"❌ API响应缺少'data'字段: {result}")
+                logger.error(f" API响应缺少'data'字段: {result}")
                 return None
 
             if 'task_id' not in result['data']:
-                logger.error(f"❌ API响应缺少task_id字段: {result}")
+                logger.error(f" API响应缺少task_id字段: {result}")
                 return None
 
             task_id = result['data']['task_id']
-            logger.info(f"✅ 任务ID: {task_id}")
+            logger.info(f"  任务ID: {task_id}")
 
             # 3. 等待处理完成
-            logger.info("⏳ 等待处理...")
+            logger.info(" 等待处理...")
             return self._wait_for_task_completion(task_id, headers)
         except Exception as e:
-            logger.error(f"❌ 创建任务时出错: {e}")
+            logger.error(f" 创建任务时出错: {e}")
             import traceback
             logger.error(f"错误详情: {traceback.format_exc()}")
             return None
@@ -306,19 +308,19 @@ class MinerUAPI:
 
                 # 检查API响应的格式和内容
                 if not isinstance(status_data, dict):
-                    logger.error(f"❌ 任务状态响应格式错误: {status_data}")
+                    logger.error(f" 任务状态响应格式错误: {status_data}")
                     return None
 
                 if 'data' not in status_data:
-                    logger.error(f"❌ 任务状态响应缺少'data'字段: {status_data}")
+                    logger.error(f" 任务状态响应缺少'data'字段: {status_data}")
                     return None
 
                 if not isinstance(status_data['data'], dict):
-                    logger.error(f"❌ 任务状态响应data字段格式错误: {status_data}")
+                    logger.error(f" 任务状态响应data字段格式错误: {status_data}")
                     return None
 
                 if 'state' not in status_data['data']:
-                    logger.error(f"❌ 任务状态响应缺少'state'字段: {status_data}")
+                    logger.error(f" 任务状态响应缺少'state'字段: {status_data}")
                     return None
 
                 state = status_data['data']['state']
@@ -329,29 +331,29 @@ class MinerUAPI:
                         logger.error("任务完成但缺少下载URL")
                         return None
                     zip_url = status_data['data']['full_zip_url']
-                    logger.info(f"✅ 处理完成！")
-                    logger.info(f"📦 下载地址: {zip_url}")
+                    logger.info(f"  处理完成！")
+                    logger.info(f" 下载地址: {zip_url}")
                     return status_data
                     
                 elif state == 'failed':
                     err_msg = status_data['data'].get('err_msg', '未知错误')
-                    logger.error(f"❌ 处理失败: {err_msg}")
+                    logger.error(f" 处理失败: {err_msg}")
                     return None
                     
                 elif state == 'running':
                     progress = status_data['data'].get('extract_progress', {})
                     extracted = progress.get('extracted_pages', 0)
                     total = progress.get('total_pages', 0)
-                    logger.info(f"⏳ 正在处理... {extracted}/{total} 页")
+                    logger.info(f" 正在处理... {extracted}/{total} 页")
                     
                 else:
-                    logger.info(f"📊 状态: {state}")
+                    logger.info(f" 状态: {state}")
                     
                 # 等待5秒后再次检查
                 time.sleep(5)
                 
             except Exception as e:
-                logger.error(f"❌ 检查任务状态时出错: {e}")
+                logger.error(f" 检查任务状态时出错: {e}")
                 import traceback
                 logger.error(f"错误详情: {traceback.format_exc()}")
                 # 继续尝试而不是直接返回
@@ -361,7 +363,7 @@ class MinerUAPI:
     
     def upload_file(self, file_path):
         """上传本地文件到临时存储"""
-        logger.info(f"📤 正在上传文件: {os.path.basename(file_path)}")
+        logger.info(f"正在上传文件: {os.path.basename(file_path)}")
         logger.info(f"文件大小: {os.path.getsize(file_path)} 字节")
         
         # 验证文件是否存在且可读
@@ -401,12 +403,12 @@ class MinerUAPI:
                 logger.info(f"尝试上传到 {service['name']}")
                 result = service['method'](file_path)
                 if result:
-                    logger.info(f"✅ 上传到 {service['name']} 成功: {result}")
+                    logger.info(f"  上传到 {service['name']} 成功: {result}")
                     return result
                 else:
                     logger.warning(f"上传到 {service['name']} 失败")
             except Exception as e:
-                logger.error(f"❌ 上传到 {service['name']} 异常: {e}")
+                logger.error(f" 上传到 {service['name']} 异常: {e}")
                 continue
         
         logger.error("所有上传服务都失败了")
@@ -419,12 +421,12 @@ class MinerUAPI:
             logger.info("正在获取gofile服务器列表...")
             server_response = self.session.get("https://api.gofile.io/servers", timeout=30)
             if server_response.status_code != 200:
-                logger.error(f"❌ 获取服务器列表失败，状态码: {server_response.status_code}")
+                logger.error(f" 获取服务器列表失败，状态码: {server_response.status_code}")
                 return None
                 
             server_data = server_response.json()
             if server_data.get("status") != "ok":
-                logger.error(f"❌ 服务器响应状态不正确: {server_data}")
+                logger.error(f" 服务器响应状态不正确: {server_data}")
                 return None
                 
             # 选择第一个服务器
@@ -455,15 +457,15 @@ class MinerUAPI:
                     # 根据API响应构造直链
                     file_id = upload_data["data"]["id"]
                     direct_url = f"https://store1.gofile.io/download/{file_id}/{filename}"
-                    logger.info(f"✅ 上传成功: {direct_url}")
+                    logger.info(f"  上传成功: {direct_url}")
                     return direct_url
                 else:
-                    logger.error(f"❌ 上传失败: {upload_data}")
+                    logger.error(f" 上传失败: {upload_data}")
             else:
-                logger.error(f"❌ 上传请求失败，状态码: {upload_response.status_code}")
+                logger.error(f" 上传请求失败，状态码: {upload_response.status_code}")
                 
         except Exception as e:
-            logger.error(f"❌ 上传到gofile时出错: {e}")
+            logger.error(f" 上传到gofile时出错: {e}")
             import traceback
             logger.error(f"错误详情: {traceback.format_exc()}")
         
@@ -520,9 +522,9 @@ class MinerUAPI:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:  # 过滤掉keep-alive chunks
                         f.write(chunk)
-            logger.info(f"✅ 结果已保存到: {save_path}")
+            logger.info(f"  结果已保存到: {save_path}")
         except Exception as e:
-            logger.error(f"❌ 下载失败: {e}")
+            logger.error(f" 下载失败: {e}")
     
     def validate_token(self):
         """
@@ -636,10 +638,10 @@ class OCRProcessor:
                 image = Image.open(emf_path)
                 # 保存为PNG格式
                 image.save(png_path, 'PNG')
-                logger.info(f"✅ EMF文件已转换为PNG: {png_path}")
+                logger.info(f"  EMF文件已转换为PNG: {png_path}")
                 return True
             except Exception as e:
-                logger.error(f"❌ EMF转换PNG失败: {e}")
+                logger.error(f" EMF转换PNG失败: {e}")
                 return False
         else:
             # Linux/Mac平台使用替代方案
@@ -650,7 +652,7 @@ class OCRProcessor:
             elif self._convert_emf_to_png_libreoffice(emf_path, png_path):
                 return True
             else:
-                logger.error(f"❌ 在{system}系统上无法转换EMF文件: {emf_path}")
+                logger.error(f" 在{system}系统上无法转换EMF文件: {emf_path}")
                 return False
     
     def _convert_emf_to_png_inkscape(self, emf_path, png_path):
@@ -666,10 +668,10 @@ class OCRProcessor:
                 f'--export-filename={png_path}'
             ]
             subprocess.run(cmd, check=True, capture_output=True)
-            logger.info(f"✅ 使用Inkscape将EMF文件转换为PNG: {png_path}")
+            logger.info(f"  使用Inkscape将EMF文件转换为PNG: {png_path}")
             return True
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            logger.warning(f"⚠️ 使用Inkscape转换EMF失败: {e}")
+            logger.warning(f" 使用Inkscape转换EMF失败: {e}")
             return False
     
     def _convert_emf_to_png_libreoffice(self, emf_path, png_path):
@@ -692,11 +694,11 @@ class OCRProcessor:
             auto_generated_path = os.path.join(os.path.dirname(png_path), f"{base_name}.png")
             if os.path.exists(auto_generated_path):
                 os.rename(auto_generated_path, png_path)
-                logger.info(f"✅ 使用LibreOffice将EMF文件转换为PNG: {png_path}")
+                logger.info(f"  使用LibreOffice将EMF文件转换为PNG: {png_path}")
                 return True
             return False
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            logger.warning(f"⚠️ 使用LibreOffice转换EMF失败: {e}")
+            logger.warning(f" 使用LibreOffice转换EMF失败: {e}")
             return False
     
     def convert_emf_to_pdf(self, emf_path, pdf_path):
@@ -717,15 +719,15 @@ class OCRProcessor:
             
             # 保存为PDF
             image.save(pdf_path, 'PDF', resolution=100.0)
-            logger.info(f"✅ EMF文件已转换为PDF: {pdf_path}")
+            logger.info(f"  EMF文件已转换为PDF: {pdf_path}")
             return True
         except Exception as e:
-            logger.error(f"❌ EMF转换PDF失败: {e}")
+            logger.error(f" EMF转换PDF失败: {e}")
             return False
     
     def upload_file(self, file_path):
         """上传本地文件到临时存储"""
-        logger.info(f"📤 正在上传文件: {os.path.basename(file_path)}")
+        logger.info(f" 正在上传文件: {os.path.basename(file_path)}")
         
         # 使用 gofile 作为首选上传服务
         try:
@@ -733,12 +735,12 @@ class OCRProcessor:
             # 1. 获取服务器列表
             server_response = self.session.get("https://api.gofile.io/servers", timeout=30)
             if server_response.status_code != 200:
-                logger.error(f"❌ 获取服务器列表失败，状态码: {server_response.status_code}")
+                logger.error(f" 获取服务器列表失败，状态码: {server_response.status_code}")
                 return None
                 
             server_data = server_response.json()
             if server_data.get("status") != "ok":
-                logger.error(f"❌ 服务器响应状态不正确: {server_data}")
+                logger.error(f" 服务器响应状态不正确: {server_data}")
                 return None
                 
             # 选择第一个服务器
@@ -769,15 +771,15 @@ class OCRProcessor:
                     # 根据API响应构造直链
                     file_id = upload_data["data"]["id"]
                     direct_url = f"https://store1.gofile.io/download/{file_id}/{filename}"
-                    logger.info(f"✅ 上传成功: {direct_url}")
+                    logger.info(f"  上传成功: {direct_url}")
                     return direct_url
                 else:
-                    logger.error(f"❌ 上传失败: {upload_data}")
+                    logger.error(f" 上传失败: {upload_data}")
             else:
-                logger.error(f"❌ 上传请求失败，状态码: {upload_response.status_code}")
+                logger.error(f" 上传请求失败，状态码: {upload_response.status_code}")
                 
         except Exception as e:
-            logger.error(f"❌ 上传到gofile时出错: {e}")
+            logger.error(f" 上传到gofile时出错: {e}")
             import traceback
             logger.error(f"错误详情: {traceback.format_exc()}")
         
@@ -791,7 +793,7 @@ class OCRProcessor:
             return None
         
         # 2. 创建MinerU任务
-        logger.info("📄 创建解析任务...")
+        logger.info(" 创建解析任务...")
         task_url = 'https://mineru.net/api/v4/extract/task'
         headers = {
             'Content-Type': 'application/json',
@@ -816,34 +818,34 @@ class OCRProcessor:
 
             # 检查API响应的格式和内容
             if not isinstance(result, dict):
-                logger.error(f"❌ API响应格式错误: {result}")
+                logger.error(f" API响应格式错误: {result}")
                 return None
 
             if 'code' not in result:
-                logger.error(f"❌ API响应缺少'code'字段: {result}")
+                logger.error(f" API响应缺少'code'字段: {result}")
                 return None
 
             if result['code'] != 0:
                 error_msg = result.get('msg', '未知错误')
-                logger.error(f"❌ 创建任务失败: {error_msg}")
+                logger.error(f" 创建任务失败: {error_msg}")
                 return None
 
             if 'data' not in result:
-                logger.error(f"❌ API响应缺少'data'字段: {result}")
+                logger.error(f" API响应缺少'data'字段: {result}")
                 return None
 
             if 'task_id' not in result['data']:
-                logger.error(f"❌ API响应缺少task_id字段: {result}")
+                logger.error(f" API响应缺少task_id字段: {result}")
                 return None
 
             task_id = result['data']['task_id']
-            logger.info(f"✅ 任务ID: {task_id}")
+            logger.info(f"  任务ID: {task_id}")
 
             # 3. 等待处理完成
-            logger.info("⏳ 等待处理...")
+            logger.info(" 等待处理...")
             return self._wait_for_task_completion(task_id, headers)
         except Exception as e:
-            logger.error(f"❌ 创建任务时出错: {e}")
+            logger.error(f" 创建任务时出错: {e}")
             return None
     
     def _wait_for_task_completion(self, task_id, headers):
@@ -861,31 +863,31 @@ class OCRProcessor:
 
                 # 检查API响应的格式和内容
                 if not isinstance(status_data, dict):
-                    logger.error(f"❌ 任务状态响应格式错误: {status_data}")
+                    logger.error(f" 任务状态响应格式错误: {status_data}")
                     return None
 
                 if 'data' not in status_data:
-                    logger.error(f"❌ 任务状态响应缺少'data'字段: {status_data}")
+                    logger.error(f" 任务状态响应缺少'data'字段: {status_data}")
                     return None
 
                 if not isinstance(status_data['data'], dict):
-                    logger.error(f"❌ 任务状态响应data字段格式错误: {status_data}")
+                    logger.error(f" 任务状态响应data字段格式错误: {status_data}")
                     return None
 
                 if 'state' not in status_data['data']:
-                    logger.error(f"❌ 任务状态响应缺少'state'字段: {status_data}")
+                    logger.error(f" 任务状态响应缺少'state'字段: {status_data}")
                     return None
 
                 state = status_data['data']['state']
 
                 if state == 'done':
                     if 'full_zip_url' not in status_data['data']:
-                        logger.error(f"❌ 任务完成但缺少下载URL: {status_data}")
+                        logger.error(f" 任务完成但缺少下载URL: {status_data}")
                         return None
 
                     zip_url = status_data['data']['full_zip_url']
-                    logger.info(f"✅ 处理完成！")
-                    logger.info(f"📦 下载地址: {zip_url}")
+                    logger.info(f"  处理完成！")
+                    logger.info(f" 下载地址: {zip_url}")
 
                     # 下载结果
                     self.download_result(zip_url, task_id)
@@ -893,19 +895,19 @@ class OCRProcessor:
 
                 elif state == 'failed':
                     err_msg = status_data['data'].get('err_msg', '未知错误')
-                    logger.error(f"❌ 处理失败: {err_msg}")
+                    logger.error(f" 处理失败: {err_msg}")
                     return None
                     
                 elif state == 'running':
                     progress = status_data['data'].get('extract_progress', {})
                     extracted = progress.get('extracted_pages', 0)
                     total = progress.get('total_pages', 0)
-                    logger.info(f"⏳ 正在处理... {extracted}/{total} 页")
+                    logger.info(f" 正在处理... {extracted}/{total} 页")
                 
                 else:
-                    logger.info(f"📊 状态: {state}")
+                    logger.info(f" 状态: {state}")
             except Exception as e:
-                logger.error(f"❌ 检查任务状态时出错: {e}")
+                logger.error(f" 检查任务状态时出错: {e}")
     
     def download_result(self, zip_url, task_id):
         """下载结果文件"""
@@ -921,10 +923,10 @@ class OCRProcessor:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:  # 过滤掉keep-alive chunks
                         f.write(chunk)
-            logger.info(f"✅ 结果已保存到: {save_path}")
+            logger.info(f"  结果已保存到: {save_path}")
             return save_path
         except Exception as e:
-            logger.error(f"❌ 下载失败: {e}")
+            logger.error(f" 下载失败: {e}")
             return None
 
     def batch_process_pdfs(self, file_paths, data_ids=None):
@@ -942,10 +944,10 @@ class OCRProcessor:
                     # 如果没有提供data_id，则使用文件名作为data_id
                     valid_data_ids.append(os.path.basename(file_path))
             else:
-                logger.error(f"❌ 文件不存在: {file_path}")
+                logger.error(f" 文件不存在: {file_path}")
         
         if not valid_files:
-            logger.error("❌ 没有有效的文件可以处理")
+            logger.error("没有有效的文件可以处理")
             return None
             
         # 准备文件信息
@@ -961,7 +963,7 @@ class OCRProcessor:
             })
         
         # 发送批量处理请求
-        logger.info("📄 申请批量处理...")
+        logger.info(" 申请批量处理...")
         batch_url = 'https://mineru.net/api/v4/file-urls/batch'
         headers = {
             'Content-Type': 'application/json',
@@ -984,39 +986,39 @@ class OCRProcessor:
             )
             if response.status_code == 200:
                 result = response.json()
-                logger.info(f'✅ 批量请求响应: {result}')
+                logger.info(f'  批量请求响应: {result}')
 
                 # 检查API响应的格式和内容
                 if not isinstance(result, dict):
-                    logger.error(f"❌ 批量请求响应格式错误: {result}")
+                    logger.error(f" 批量请求响应格式错误: {result}")
                     return None
 
                 if 'code' not in result:
-                    logger.error(f"❌ 批量请求响应缺少'code'字段: {result}")
+                    logger.error(f" 批量请求响应缺少'code'字段: {result}")
                     return None
 
                 if result["code"] == 0:
                     if 'data' not in result:
-                        logger.error(f"❌ 批量请求响应缺少'data'字段: {result}")
+                        logger.error(f" 批量请求响应缺少'data'字段: {result}")
                         return None
 
                     if 'batch_id' not in result["data"]:
-                        logger.error(f"❌ 批量请求响应缺少batch_id字段: {result}")
+                        logger.error(f" 批量请求响应缺少batch_id字段: {result}")
                         return None
 
                     if 'file_urls' not in result["data"]:
-                        logger.error(f"❌ 批量请求响应缺少file_urls字段: {result}")
+                        logger.error(f" 批量请求响应缺少file_urls字段: {result}")
                         return None
 
                     batch_id = result["data"]["batch_id"]
                     urls = result["data"]["file_urls"]
-                    logger.info(f'📦 批量ID: {batch_id}')
-                    logger.info(f'🔗 上传链接: {urls}')
+                    logger.info(f' 批量ID: {batch_id}')
+                    logger.info(f' 上传链接: {urls}')
 
                     # 上传文件到返回的URL
                     for i, url in enumerate(urls):
                         file_path = valid_files[i]
-                        logger.info(f"📤 正在上传: {file_path}")
+                        logger.info(f" 正在上传: {file_path}")
                         try:
                             with open(file_path, 'rb') as f:
                                 res_upload = self.session.put(
@@ -1025,26 +1027,26 @@ class OCRProcessor:
                                     timeout=(30, 300)
                                 )
                                 if res_upload.status_code == 200:
-                                    logger.info(f"✅ {file_path} 上传成功")
+                                    logger.info(f"  {file_path} 上传成功")
                                 else:
-                                    logger.error(f"❌ {file_path} 上传失败, 状态码: {res_upload.status_code}")
+                                    logger.error(f" {file_path} 上传失败, 状态码: {res_upload.status_code}")
                         except Exception as upload_err:
-                            logger.error(f"❌ {file_path} 上传过程中出错: {upload_err}")
+                            logger.error(f" {file_path} 上传过程中出错: {upload_err}")
                         
                         # 在文件上传之间添加延迟，避免服务器压力过大
                         time.sleep(1)
                     
-                    logger.info(f"✅ 批量上传完成，批次ID: {batch_id}")
+                    logger.info(f"  批量上传完成，批次ID: {batch_id}")
                     
                     # 等待处理完成并下载结果
                     self.wait_and_download_batch_results(batch_id)
                     return batch_id
                 else:
-                    logger.error(f'❌ 申请上传URL失败: {result["msg"]}')
+                    logger.error(f' 申请上传URL失败: {result["msg"]}')
             else:
-                logger.error(f'❌ 请求失败，状态码: {response.status_code}')
+                logger.error(f' 请求失败，状态码: {response.status_code}')
                 logger.error(f'响应内容: {response.text}')
         except Exception as err:
-            logger.error(f"❌ 批量处理出错: {err}")
+            logger.error(f" 批量处理出错: {err}")
             
         return None
